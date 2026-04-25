@@ -5,7 +5,8 @@
 - **Emisor**: Torre
 - **PROYECTO_FUNCIONAL**: <nombre humano del proyecto, ej. "Torre de Control">   <!-- OBLIGATORIO. Ver protocolo.md, sección "Identidad de proyecto". -->
 - **REPO_TECNICO**: <owner/repo, ej. "szlapakariel-ux/torre-control">   <!-- OBLIGATORIO. Si el repo actual no coincide, el operador NO ejecuta. -->
-- **RAMA_OBJETIVO**: <branch, ej. "claude/feature-x">   <!-- OBLIGATORIO. -->
+- **RAMA_TRABAJO**: <branch donde el operador desarrolla, ej. "claude/feature-x">   <!-- OBLIGATORIO. El operador debe estar parado en esta rama. -->
+- **RAMA_DESTINO**: <branch donde aterriza el trabajo, ej. "main">   <!-- OBLIGATORIO. Informativo: no se verifica en runtime; se usa al abrir el PR. -->
 - **EJECUTOR**: <claude | codex | humano | otro>   <!-- OBLIGATORIO. Ver protocolo.md, sección "Control de concurrencia". -->
 - **Operador asignado** (opcional, descriptivo): <Claude Code | Codex | otro>
 
