@@ -185,3 +185,5 @@ Con esos campos, el Invoker:
 - No verifica `TIPO_ORDEN` (deja eso al protocolo; el Invoker actúa solo si `REQUIERE_IA: si`).
 
 Todo eso es V2 / iteraciones siguientes.
+
+<!-- TEST 1 (rama torre/test-invoker-doc-only): nota temporal de prueba para validar el gate de "no cambió inbox". No mergear. -->
