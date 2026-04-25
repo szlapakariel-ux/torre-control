@@ -55,3 +55,43 @@ jobs:
             exit "$code"
           fi
           exit 0
+
+      - name: Intentar invocar operador IA si la orden lo pide (Invoker V1)
+        # Corre incluso si el step anterior reportó "ciclo abierto":
+        # ese es justamente el escenario donde puede haber orden activa.
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          set +e
+          out=$(.torre/scripts/invoke_operator.sh 2>&1)
+          code=$?
+          set -e
+
+          echo "$out"
+
+          {
+            echo ""
+            echo "## Trigger V1 — Invoker IA"
+            echo ""
+            echo '```'
+            echo "$out"
+            echo "exit code: $code"
+            echo '```'
+            echo ""
+            case "$code" in
+              0)  echo "Resultado: invocación exitosa." ;;
+              10) echo "Resultado: no aplica (sin orden activa, REQUIERE_IA != si, o EJECUTOR = humano)." ;;
+              20) echo "Resultado: orden inválida (faltan campos obligatorios)." ;;
+              30) echo "Resultado: guardrail disparó (repo actual no coincide con REPO_TECNICO)." ;;
+              40) echo "Resultado: operador desconocido o adaptador no disponible." ;;
+              99) echo "Resultado: adaptador respondió como STUB. Operador real no configurado todavía." ;;
+              *)  echo "Resultado: exit inesperado ($code)." ;;
+            esac
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          # 0, 10, 99 → success (estado normal o esperado).
+          # 20, 30, 40 → fail (algo está mal en la orden o configuración).
+          if [[ "$code" -ge 20 && "$code" -lt 99 ]]; then
+            exit "$code"
+          fi
+          exit 0
