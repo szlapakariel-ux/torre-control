@@ -34,3 +34,9 @@
 ## [SIGUIENTE PASO]
 
 <Una sugerencia concreta para la próxima orden. Decide la Torre.>
+
+## [EN_PROCESO_POR]
+
+- **Operador que tomó la orden**: <claude | codex | humano | otro>
+- **Liberación al cierre confirmada**: <sí | no>   <!-- "sí" implica que el operador devolvió EN_PROCESO_POR a `ninguno` en .torre/estado.md como parte de este ciclo. -->
+

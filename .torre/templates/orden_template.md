@@ -3,7 +3,8 @@
 - **ID**: ORD-YYYYMMDD-NN
 - **Fecha**: YYYY-MM-DD
 - **Emisor**: Torre
-- **Operador asignado**: <Claude Code | Codex | otro>
+- **EJECUTOR**: <claude | codex | humano | otro>   <!-- OBLIGATORIO. Sin este campo la orden es inválida. Ver protocolo.md, sección "Control de concurrencia". -->
+- **Operador asignado** (opcional, descriptivo): <Claude Code | Codex | otro>
 
 ## Objetivo
 
