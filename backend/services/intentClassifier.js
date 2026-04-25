@@ -1,5 +1,12 @@
 const RULES = [
   {
+    intent: 'url',
+    priority: 'media',
+    keywords: ['leelo', 'leer url', 'leer página', 'leer pagina', 'activar browser', 'browser', 'navega', 'navegá', 'abrir link', 'abrir url', 'abre la página', 'leeme', 'leer link'],
+    response: 'Voy a leer esa página. Dame un momento.',
+    nextStep: 'Extraer y resumir el contenido de la URL indicada.',
+  },
+  {
     intent: 'error',
     priority: 'alta',
     keywords: ['se cayó', 'no funciona', 'error', 'falla', 'bug', 'roto', 'falló', 'problema', 'crash', 'no anda', 'se rompió'],

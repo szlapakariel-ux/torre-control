@@ -1,5 +1,6 @@
 // ── Config ────────────────────────────────────────────
-const BACKEND_URL = 'http://localhost:3001/api/message';
+const BACKEND_URL  = 'http://localhost:3001/api/message';
+const BROWSE_URL   = 'http://localhost:3001/api/browse';
 
 const INTENT_LABELS = {
   error:            'Error',
@@ -7,6 +8,7 @@ const INTENT_LABELS = {
   'decisión':       'Decisión',
   duda:             'Duda',
   idea:             'Idea',
+  url:              'Navegador',
   consulta_general: 'Consulta',
 };
 
@@ -15,6 +17,7 @@ const chatMessages  = document.getElementById('chatMessages');
 const chatInput     = document.getElementById('chatInput');
 const sendButton    = document.getElementById('sendButton');
 const micButton     = document.getElementById('micButton');
+const browseButton  = document.getElementById('browseButton');
 const jarviszToggle = document.getElementById('jarviszToggle');
 const jarviszLabel  = document.getElementById('jarviszLabel');
 const jarviszStatus = document.getElementById('jarviszStatus');
@@ -113,10 +116,80 @@ function createTypingIndicator() {
   return wrapper;
 }
 
+// ── URL detection ─────────────────────────────────────
+const URL_RE = /https?:\/\/[^\s]+?(?=[.,;:!?)]*(?:\s|$))/;
+
+function extractUrl(text) {
+  const m = text.match(URL_RE);
+  return m ? m[0] : null;
+}
+
+// ── Browse page (URL reader) ──────────────────────────
+async function browsePage(url) {
+  chatMessages.appendChild(createMessage(url, 'user'));
+  chatInput.value = '';
+  chatInput.style.height = 'auto';
+  sendButton.disabled = true;
+  scrollToBottom();
+
+  setState('thinking');
+
+  const typing = createTypingIndicator();
+  chatMessages.appendChild(typing);
+  scrollToBottom();
+
+  let responseText = '';
+
+  try {
+    const res = await fetch(BROWSE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url }),
+    });
+
+    const data = await res.json();
+    typing.remove();
+
+    if (data.ok) {
+      const summary = `📄 ${data.title}\n\n${data.excerpt}`;
+      chatMessages.appendChild(createSystemMessage(summary, 'url'));
+      responseText = summary;
+    } else {
+      const msg = `No pude leer la página: ${data.error}`;
+      chatMessages.appendChild(createSystemMessage(msg, 'error'));
+      responseText = msg;
+    }
+  } catch {
+    typing.remove();
+    const msg = 'No se pudo conectar con el backend para leer la página.';
+    chatMessages.appendChild(createSystemMessage(msg, 'error'));
+    responseText = msg;
+  }
+
+  sendButton.disabled = false;
+  scrollToBottom();
+
+  if (jarviszEnabled && responseText) {
+    setState('speaking');
+    speak(responseText, () => {
+      if (jarviszEnabled) startListening();
+      else setState('idle');
+    });
+  } else {
+    setState('idle');
+  }
+}
+
 // ── Send message (async → backend) ───────────────────
 async function sendMessage(autoSend = false) {
   const text = chatInput.value.trim();
   if (!text) return;
+
+  // If the message is (or contains) a URL, use the browser reader instead
+  const detectedUrl = extractUrl(text);
+  if (detectedUrl) {
+    return browsePage(detectedUrl);
+  }
 
   chatMessages.appendChild(createMessage(text, 'user'));
   chatInput.value = '';
@@ -244,6 +317,18 @@ function stopListening() {
 micButton.addEventListener('click', () => {
   if (currentState === 'listening') stopListening();
   else startListening();
+});
+
+// ── Browse button ────────────────────────────────────
+browseButton.addEventListener('click', () => {
+  const text = chatInput.value.trim();
+  const url  = extractUrl(text);
+  if (url) {
+    browsePage(url);
+  } else {
+    chatInput.placeholder = 'Pegá una URL para que la lea…';
+    chatInput.focus();
+  }
 });
 
 // ── Jarvisz toggle ────────────────────────────────────

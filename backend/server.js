@@ -3,6 +3,7 @@ const cors = require('cors');
 const { classifyIntent } = require('./services/intentClassifier');
 const { saveMessage } = require('./services/storage');
 const { readKnowledge, saveKnowledgeItem, updateKnowledgeItem } = require('./services/knowledgeStore');
+const { fetchPage } = require('./services/browserReader');
 
 const app = express();
 const PORT = 3001;
@@ -83,6 +84,23 @@ app.get('/api/knowledge', (req, res) => {
 
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true, status: 'Torre de Control backend activo.' });
+});
+
+// ── Browser: leer contenido de una URL ────────────────
+
+app.post('/api/browse', async (req, res) => {
+  const url = req.body?.url;
+
+  if (!url || typeof url !== 'string' || !url.trim()) {
+    return res.status(400).json({ ok: false, error: 'Falta el campo "url".' });
+  }
+
+  try {
+    const result = await fetchPage(url.trim());
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    res.status(422).json({ ok: false, error: err.message });
+  }
 });
 
 app.listen(PORT, () => {
