@@ -1,6 +1,8 @@
 # Propuesta — Torre Central multi-repo
 
-Estado: **PROPUESTA**, no implementada. Documento generado por ORD-2026-04-25-11. La aprobación, implementación y migración son ciclos posteriores.
+Estado: **APROBADA E IMPLEMENTADA** en ORD-2026-04-25-12. El documento queda como referencia histórica del diseño. La fuente operativa de verdad ahora vive en `protocolo.md` (sección "Órdenes remotas"), `flujo.md` (sección "Flujo de orden remota"), `roles.md` (sección "Repo central / Repo destino") y `templates/orden_template.md` (campos `TIPO_ORDEN` y `REPO_ORIGEN`).
+
+> Documento generado originalmente por ORD-2026-04-25-11 como propuesta. Si las normas operativas y este documento divergen en el futuro, gana lo que digan los archivos operativos (`protocolo.md`, etc.).
 
 ## Por qué este documento
 
