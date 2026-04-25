@@ -1,0 +1,11 @@
+[
+  {
+    "project": "psicologa",
+    "message": "se cayó el bot",
+    "intent": "error",
+    "priority": "alta",
+    "response": "Detecté un posible error. Antes de avanzar, necesito entender mejor qué pasó.",
+    "nextStep": "Aclarar el contexto y alcance del error antes de ejecutar acciones.",
+    "timestamp": "2026-04-25T05:34:54.474Z"
+  }
+]

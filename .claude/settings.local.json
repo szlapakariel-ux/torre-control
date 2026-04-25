@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/szlap/OneDrive/Desktop/Torre de control/backend/**)",
+      "Bash(npm install *)",
+      "Bash(mkdir -p \"/c/Users/szlap/OneDrive/Desktop/Torre de control/backend/data\")",
+      "Bash(echo \"[]\")",
+      "Bash(node -e ' *)",
+      "Bash(node server.js)",
+      "Bash(curl -s -X POST http://localhost:3001/api/knowledge -H 'Content-Type: application/json' -d '{\"project\":\"psicologa\",\"topic\":\"Jarvisz\",\"type\":\"decision\",\"title\":\"Jarvisz como modo de conversacion por voz\",\"description\":\"Lee respuestas y escucha al usuario.\",\"why\":\"Ariel necesita interactuar sin depender del teclado.\"}')",
+      "Bash(python3 -m json.tool)"
+    ]
+  }
+}
