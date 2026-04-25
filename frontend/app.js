@@ -276,11 +276,21 @@ async function loadLastDecision() {
     const item = data.items[data.items.length - 1];
     const { title, description } = item.currentVersion;
 
-    el.innerHTML = `
-      <span class="decision-topic">${item.topic}</span>
-      <strong class="decision-title">${title}</strong>
-      ${description ? `<span class="decision-desc">${description}</span>` : ''}
-    `.trim();
+    el.innerHTML = '';
+        const spanTopic = document.createElement('span');
+            spanTopic.className = 'decision-topic';
+                spanTopic.textContent = item.topic;
+                    const strongTitle = document.createElement('strong');
+                        strongTitle.className = 'decision-title';
+                            strongTitle.textContent = title;
+                                el.appendChild(spanTopic);
+                                    el.appendChild(strongTitle);
+                                        if (description) {
+                                              const spanDesc = document.createElement('span');
+                                                    spanDesc.className = 'decision-desc';
+                                                          spanDesc.textContent = description;
+                                                                el.appendChild(spanDesc);
+                                                                    }
   } catch {
     el.textContent = 'No hay decisiones registradas.';
   }
