@@ -47,14 +47,32 @@ Ver `.torre/templates/reporte_template.md`. Secciones obligatorias:
 [SIGUIENTE PASO]
 ```
 
-## Cierre de ciclo
+## Cierre de ciclo (regla obligatoria)
 
-Al finalizar un ciclo, el operador:
+El cierre de cada orden se hace en el MISMO PR que la ejecución. Pasos:
 
-1. Copia `orden_actual.md` y `reporte_actual.md` a `.torre/historial/<YYYY-MM-DD>_<slug>/`.
-2. Vacía `orden_actual.md` (deja placeholder "sin orden activa").
-3. Vacía `reporte_actual.md` (deja placeholder "sin reporte activo").
-4. Actualiza `estado.md`.
+1. Ejecutar la orden completa.
+2. Escribir el reporte en `.torre/outbox/reporte_actual.md`.
+3. Actualizar `.torre/estado.md`.
+4. Archivar en `.torre/historial/<YYYY-MM-DD>_<slug>/`:
+   - `orden_actual.md`
+   - `reporte_actual.md`
+5. Dejar placeholders en:
+   - `.torre/inbox/orden_actual.md`
+   - `.torre/outbox/reporte_actual.md`
+6. Todo lo anterior va en el MISMO PR.
+7. El PR solo se considera completo cuando:
+   - ejecución terminada
+   - reporte completo
+   - archivos archivados en `historial/`
+   - inbox limpio (placeholder)
+
+### Restricciones de cierre
+
+- **No** crear PR separado para limpieza/archivado.
+- **No** dejar órdenes activas en `inbox/` al cerrar.
+- **No** ejecutar más de una orden por ciclo.
+- **No** avanzar sin nueva orden de Torre.
 
 ## Lo que el MVP NO hace todavía
 
