@@ -44,6 +44,32 @@ El repo **no opina ni interpreta**. Es transporte y archivo.
 
 Ariel **no es cartero**. No traduce órdenes ni transporta mensajes. Si la Torre puede escribir la orden directamente, lo hace ella.
 
+## Repo central / Repo destino
+
+Roles opcionales que un repo puede asumir cuando se usan **órdenes remotas** (ver `protocolo.md`, sección "Órdenes remotas"). Estos roles son **independientes** de los anteriores: un repo puede ser "Repo central" y a la vez seguir ejecutando órdenes locales propias.
+
+### Repo central — coordina, no ejecuta cross-repo
+
+- Es el repo donde Torre redacta órdenes destinadas a otros repos. Por defecto es `torre-control`, pero cualquier repo con `.torre/` instalado puede asumir el rol.
+- Al recibir una orden con `TIPO_ORDEN: remota`, su operador local **no ejecuta el contenido** — hace transporte (mover a `remotas/<destino>/`) y archiva en `historial/remoto_*/`.
+- Mantiene la cola de órdenes encoladas en `.torre/remotas/<destino-slug>/` y la bandeja de reportes recibidos en `.torre/reportes-remotos/<destino-slug>/`.
+- **No tiene permisos** para modificar el código de los repos destino. Solo redacta y archiva.
+
+### Repo destino — ejecuta lo que le llega como local
+
+- Es cualquier repo con `.torre/` instalado que recibe órdenes desde una Torre Central.
+- Cuando una orden remota es transportada a su `inbox/orden_actual.md`, **la ve como orden local**: su `REPO_TECNICO` coincide con su repo, el chequeo dura local pasa, ejecuta normalmente.
+- Cierra el ciclo y archiva en su propio `historial/`. El reporte canónico vive ahí.
+- **No modifica** la Torre Central. Si el reporte tiene que volver, lo hace por copia (PR cross-repo, fork, fetch o pegado manual).
+
+### Reglas de coexistencia
+
+- Un mismo repo puede ser, simultáneamente:
+  - Repo-local (ejecuta sus órdenes locales).
+  - Repo central (emite remotas hacia otros).
+  - Repo destino (recibe remotas desde otros).
+- Esos tres roles **conviven** sin pisarse, porque los archivos viven en directorios distintos: `inbox/` y `outbox/` para órdenes locales en curso; `remotas/` para emisiones de salida; `reportes-remotos/` para entradas externas.
+
 ## Control de concurrencia
 
 Cuando hay más de un operador IA disponible, los roles tienen obligaciones extra:
@@ -52,17 +78,17 @@ Cuando hay más de un operador IA disponible, los roles tienen obligaciones extr
 
 - Asigna el ejecutor al emitir la orden, mediante el campo `EJECUTOR` (ej. `EJECUTOR: claude`, `EJECUTOR: codex`).
 - Declara la identidad de proyecto en la orden mediante `PROYECTO_FUNCIONAL`, `REPO_TECNICO`, `RAMA_TRABAJO` y `RAMA_DESTINO` (ver `protocolo.md`, sección "Identidad de proyecto").
-- No emite una orden sin esos cinco campos (los cuatro de identidad + `EJECUTOR`): una orden incompleta es inválida.
+- Declara el tipo de orden y origen mediante `TIPO_ORDEN` (`local` | `remota`) y `REPO_ORIGEN`. Para órdenes locales, `REPO_ORIGEN == REPO_TECNICO`. Para remotas (cross-repo), `REPO_ORIGEN` apunta a la Torre Central que la emite.
+- No emite una orden sin esos siete campos: una orden incompleta es inválida.
 - No reasigna ejecutor a mitad de un ciclo. Si quiere cambiar de operador, cierra el ciclo actual y emite una orden nueva.
 
 ### Operador IA
 
 - Antes de actuar, **verifica identidad de proyecto** (ver `protocolo.md`, sección "Identidad de proyecto"):
-  - `PROYECTO_FUNCIONAL`, `REPO_TECNICO`, `RAMA_TRABAJO`, `RAMA_DESTINO`, `EJECUTOR` deben estar todos en la orden.
-  - El repo actual debe coincidir con `REPO_TECNICO`. Si no coincide, **no ejecuta**, no toma el lock, no modifica archivos.
-  - La rama actual debe coincidir con `RAMA_TRABAJO`.
-  - Su identidad debe coincidir con `EJECUTOR`.
-  - `RAMA_DESTINO` no se verifica en runtime; se usa al abrir el PR.
+  - Los siete campos obligatorios deben estar en la orden: `PROYECTO_FUNCIONAL`, `REPO_TECNICO`, `RAMA_TRABAJO`, `RAMA_DESTINO`, `EJECUTOR`, `TIPO_ORDEN`, `REPO_ORIGEN`.
+  - Coherencia: `TIPO_ORDEN: local` ⇒ `REPO_ORIGEN == REPO_TECNICO`; `TIPO_ORDEN: remota` ⇒ `REPO_ORIGEN ≠ REPO_TECNICO`.
+  - **Para `TIPO_ORDEN: local`**: el repo actual debe coincidir con `REPO_TECNICO`; la rama actual debe coincidir con `RAMA_TRABAJO`; su identidad debe coincidir con `EJECUTOR`. Si algo falla, **no ejecuta**, no toma el lock, no modifica archivos. `RAMA_DESTINO` no se verifica en runtime; se usa al abrir el PR.
+  - **Para `TIPO_ORDEN: remota`**: el repo actual debe coincidir con `REPO_ORIGEN` (la Torre Central); su identidad debe coincidir con `EJECUTOR`. Hace **transporte**, no ejecuta el contenido (ver `flujo.md`, sección "Flujo de orden remota").
 - Antes de modificar archivos, marca el ciclo como tomado: setea `EN_PROCESO_POR: <su_id>` en `.torre/estado.md`.
 - Mientras `EN_PROCESO_POR` apunte a otro operador, no inicia ningún trabajo, aunque haya una orden visible en la `inbox`.
 - Al cerrar el ciclo, libera el lock: `EN_PROCESO_POR: ninguno`.
