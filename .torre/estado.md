@@ -1,10 +1,10 @@
 # Estado Torre
 
 - **Última actualización**: 2026-04-25
-- **Última orden cerrada**: ORD-2026-04-25-04 — templates alineados con control de concurrencia
+- **Última orden cerrada**: ORD-2026-04-25-05 — caso "lock huérfano" documentado
 - **Operador del último ciclo**: Claude Code (`claude`)
 - **Branch del último ciclo**: `claude/trigger-torre-mvp-rSWiS`
-- **Archivo del último ciclo**: `.torre/historial/2026-04-25_actualizar-templates/`
+- **Archivo del último ciclo**: `.torre/historial/2026-04-25_lock-huerfano/`
 - **Orden activa**: NO (inbox en placeholder)
 - **EN_PROCESO_POR**: ninguno
 - **Bloqueos**: ninguno
@@ -13,8 +13,8 @@
 
 - `.torre/` instalado y documentado: protocolo, sistema, roles, flujo, decisiones, README, templates, estado.
 - Regla de cierre formalizada: ejecución + reporte + archivado + inbox limpio se hacen en el MISMO PR.
-- Control de concurrencia documentado (protocolo, flujo, roles) y reflejado en los templates: `EJECUTOR` obligatorio en la orden, sección `[EN_PROCESO_POR]` en el reporte, campo `EN_PROCESO_POR` en este archivo.
-- Historial: cuatro ciclos cerrados (ORD-20260425-01 instalación, ORD-2026-04-25-02 documentación, ORD-2026-04-25-03 control de concurrencia, ORD-2026-04-25-04 templates).
+- Control de concurrencia documentado, reflejado en templates, y ahora cubre el caso "lock huérfano" (manual, no automático).
+- Historial: cinco ciclos cerrados (instalación, documentación, control de concurrencia, templates, lock huérfano).
 - `inbox/orden_actual.md` y `outbox/reporte_actual.md` en placeholder — no hay orden activa.
 - Backend y frontend sin cambios. Cero dependencias nuevas.
 

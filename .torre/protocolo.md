@@ -86,6 +86,42 @@ El sistema soporta múltiples operadores IA (Claude Code, Codex, otros). Para qu
 - **Liberación.** Al cerrar el ciclo, `EN_PROCESO_POR` vuelve a `ninguno`.
 - **Conflictos.** Si dos operadores intentan tomar la misma orden simultáneamente, gana el primero que mergea su PR; el otro se encuentra inbox en placeholder y no ejecuta.
 
+### Lock huérfano
+
+Un **lock huérfano** es un `EN_PROCESO_POR` distinto de `ninguno` que ya no corresponde a un ciclo realmente en curso.
+
+#### Qué es
+
+`EN_PROCESO_POR: <id>` señala que el operador `<id>` tomó el ciclo y no lo cerró. Si nadie está ejecutando de verdad, el lock está huérfano: bloquea al resto sin que haya trabajo activo.
+
+#### Cuándo ocurre
+
+- El operador toma el lock (`EN_PROCESO_POR: <su_id>`), arranca a ejecutar y se cae a mitad (timeout, error, sesión cerrada) sin devolver el lock a `ninguno`.
+- El operador falla al pushear el commit de cierre y queda el lock seteado solo en local.
+- Un cierre parcial: el operador escribió reporte pero no actualizó `estado.md`, o viceversa.
+- Conflictos de merge mal resueltos que dejan `EN_PROCESO_POR` con un valor incorrecto.
+
+Síntomas: `EN_PROCESO_POR: <id>` apunta a un operador, pero `inbox/orden_actual.md` está en placeholder, o el último commit de ese operador es viejo, o ningún PR abierto corresponde a un ciclo activo.
+
+#### Quién puede liberarlo
+
+- **Torre**: autoridad principal para liberar locks huérfanos. Liberación manual.
+- **Ariel**: solo si la Torre está ausente y el lock está bloqueando trabajo crítico, dentro del rol "interviene en alto impacto".
+- **Operador IA**: NO puede liberar un lock que apunte a otro operador. Sí puede liberar uno propio si confirma que el ciclo no quedó realmente en curso (rara vez aplica, porque si llega a ese punto suele significar que ya cerró).
+
+#### Cómo se libera
+
+Manualmente, en un commit (puede ser parte de la próxima orden Torre o una orden mínima dedicada):
+
+1. Verificar que no hay ciclo realmente en curso (`inbox/orden_actual.md` en placeholder, sin PR abierto del operador, etc.).
+2. Editar `.torre/estado.md` y poner `EN_PROCESO_POR: ninguno`.
+3. Anotar la liberación en el commit message (ej. `chore(torre): liberar lock huérfano EN_PROCESO_POR=claude`).
+4. Si hubo cierre parcial (reporte escrito pero sin archivar, etc.), completar el archivado a `historial/` con un slug `<fecha>_lock-huerfano-<id>` y dejar `outbox/reporte_actual.md` en placeholder.
+
+#### Regla: no liberación automática todavía
+
+El MVP **no** libera locks huérfanos de forma automática. Nada de timeouts, watchdogs, jobs programados ni heurísticas. La liberación es 100% manual y queda en el commit log. Esa restricción es deliberada hasta que el sistema tenga suficiente historia para definir un timeout sano sin matar ciclos lentos legítimos.
+
 ## Lo que el MVP NO hace todavía
 
 - No conecta APIs.

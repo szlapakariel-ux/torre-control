@@ -72,3 +72,13 @@ Cuando hay más de un operador IA disponible, los roles tienen obligaciones extr
 - Interviene si dos operadores quedan trabados (ambos creen tener el ciclo, o ninguno lo toma) y la Torre necesita desempate humano.
 
 Regla general: **una orden = un ejecutor**. Cualquier operador que no sea el `EJECUTOR` designado, no ejecuta.
+
+### Liberación de lock huérfano
+
+Cuando `EN_PROCESO_POR` queda apuntando a un operador que ya no está ejecutando (caída, sesión cerrada, cierre parcial), el lock está huérfano. Quién puede liberarlo:
+
+- **Torre**: autoridad principal. Liberación manual editando `.torre/estado.md`.
+- **Ariel**: solo si la Torre está ausente y el lock bloquea trabajo crítico (rol "alto impacto").
+- **Operador IA**: NO libera locks que apuntan a otros operadores. Solo puede liberar el propio si confirma que el ciclo no quedó en curso.
+
+El MVP no libera automáticamente. Detalle completo en `protocolo.md`, sección "Control de concurrencia" → "Lock huérfano".
