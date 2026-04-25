@@ -54,3 +54,5 @@ Lo que se pierde: el PR queda un poco más grande. Aceptable: el archivado son d
 - **Estado oculto.** `estado.md` siempre dice cuál es la situación. No hay que reconstruirla preguntando.
 - **Pérdida de trazabilidad.** `historial/` guarda el par orden+reporte de cada ciclo, inmutable.
 - **Discrepancia entre canales.** El repo es la única fuente de verdad — no hay segunda copia que desincronizar.
+
+<!-- Nota de validación V1.2 (rama descartable, no mergear). -->
