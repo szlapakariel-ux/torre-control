@@ -1,0 +1,57 @@
+name: torre-trigger-v1
+
+# Trigger V1 del sistema postal .torre/.
+# Corre el detector de cierre de ciclo cada vez que cambia algo dentro de .torre/.
+# El resultado queda visible en el resumen del job (Actions UI) y, en PRs,
+# como check status. No notifica externamente: V1 = informativo.
+
+on:
+  push:
+    paths:
+      - '.torre/**'
+      - '.torre/scripts/**'
+      - '.github/workflows/torre-trigger.yml'
+  pull_request:
+    paths:
+      - '.torre/**'
+      - '.torre/scripts/**'
+      - '.github/workflows/torre-trigger.yml'
+
+jobs:
+  detect-cycle-closure:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Detectar estado del ciclo .torre
+        id: detect
+        shell: bash
+        run: |
+          set +e
+          out=$(.torre/scripts/check_cycle_closed.sh)
+          code=$?
+          set -e
+
+          echo "$out"
+
+          {
+            echo "## Trigger V1 - Estado del ciclo .torre"
+            echo ""
+            echo '```'
+            echo "$out"
+            echo '```'
+            echo ""
+            case "$code" in
+              0) echo "Resultado: CICLO CERRADO. El sistema postal está en reposo." ;;
+              1) echo "Resultado: CICLO ABIERTO. Hay trabajo en curso o el sistema todavía no completó un ciclo." ;;
+              *) echo "Resultado: ERROR. Revisar archivos de .torre/." ;;
+            esac
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          # No fallar el workflow si el ciclo está abierto: es estado normal
+          # mientras un PR está en progreso. Solo fallar si hubo error real.
+          if [[ "$code" -ge 2 ]]; then
+            exit "$code"
+          fi
+          exit 0
