@@ -74,6 +74,18 @@ El cierre de cada orden se hace en el MISMO PR que la ejecución. Pasos:
 - **No** ejecutar más de una orden por ciclo.
 - **No** avanzar sin nueva orden de Torre.
 
+## Control de concurrencia
+
+El sistema soporta múltiples operadores IA (Claude Code, Codex, otros). Para que no se pisen entre sí:
+
+- **Una orden = un ejecutor.** Cada orden la toma exactamente un operador. No se ejecuta una orden "a dos manos".
+- **Campo `EJECUTOR` obligatorio en la orden.** Identifica al operador asignado (ej. `EJECUTOR: claude`, `EJECUTOR: codex`). Sin `EJECUTOR`, la orden es inválida y nadie ejecuta.
+- **Campo `EN_PROCESO_POR` en `estado.md`.** Indica quién está ejecutando AHORA. Vale `ninguno` si no hay ciclo activo, o el identificador del operador en curso.
+- **Regla del ejecutor.** Si un operador lee `inbox/orden_actual.md` y el campo `EJECUTOR` no coincide con su identidad, **no ejecuta**. Se detiene en silencio.
+- **Toma de la orden.** Antes de ejecutar, el operador asignado actualiza `estado.md` poniendo `EN_PROCESO_POR: <su_id>`. Esto y la ejecución pueden ir en commits separados dentro del mismo PR.
+- **Liberación.** Al cerrar el ciclo, `EN_PROCESO_POR` vuelve a `ninguno`.
+- **Conflictos.** Si dos operadores intentan tomar la misma orden simultáneamente, gana el primero que mergea su PR; el otro se encuentra inbox en placeholder y no ejecuta.
+
 ## Lo que el MVP NO hace todavía
 
 - No conecta APIs.

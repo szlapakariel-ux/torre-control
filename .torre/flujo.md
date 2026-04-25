@@ -56,6 +56,17 @@ Un "ciclo" es la unidad mínima de trabajo: una orden, una ejecución, un report
 
 - El operador no inicia ningún trabajo nuevo. Espera a que la Torre publique la próxima orden en `inbox/`.
 
+## Control de concurrencia
+
+Cuando hay más de un operador IA disponible (Claude Code, Codex, otros), el flujo se modifica para evitar colisiones:
+
+- **Asignación en la orden.** Toda orden lleva un campo `EJECUTOR` con el identificador del operador asignado (ej. `claude`, `codex`). Sin ese campo, la orden es inválida.
+- **Una orden = un ejecutor.** Solo el operador cuyo identificador coincide con `EJECUTOR` debe actuar. Cualquier otro operador que lea la orden se detiene.
+- **Toma de la orden.** Antes de modificar archivos, el operador asignado actualiza `.torre/estado.md` poniendo `EN_PROCESO_POR: <su_id>`. Eso señala el ciclo como tomado.
+- **Estado durante la ejecución.** Mientras `EN_PROCESO_POR` no sea `ninguno`, los demás operadores tratan el sistema como ocupado y no inician nada nuevo, incluso si la `inbox` queda con una orden distinta.
+- **Liberación al cierre.** Al cerrar el ciclo, junto con vaciar la `inbox` y archivar, el operador setea `EN_PROCESO_POR: ninguno`.
+- **Empate al tomar.** Si dos operadores tratan de tomar la misma orden a la vez, el conflicto se resuelve por el merge: el primero que mergea su PR es el que ejecutó; el segundo se encuentra `inbox` en placeholder y no actúa.
+
 ## Ejemplo real: ORD-20260425-01
 
 Primer ciclo del sistema. Sirve como referencia concreta.

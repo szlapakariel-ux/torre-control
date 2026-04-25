@@ -43,3 +43,32 @@ El repo **no opina ni interpreta**. Es transporte y archivo.
 - Su intervención queda registrada en el reporte (sección `[RIESGO]` o `[SIGUIENTE PASO]`) o en el commit message.
 
 Ariel **no es cartero**. No traduce órdenes ni transporta mensajes. Si la Torre puede escribir la orden directamente, lo hace ella.
+
+## Control de concurrencia
+
+Cuando hay más de un operador IA disponible, los roles tienen obligaciones extra:
+
+### Torre
+
+- Asigna el ejecutor al emitir la orden, mediante el campo `EJECUTOR` (ej. `EJECUTOR: claude`, `EJECUTOR: codex`).
+- No emite una orden sin ejecutor designado: una orden sin `EJECUTOR` es inválida.
+- No reasigna ejecutor a mitad de un ciclo. Si quiere cambiar de operador, cierra el ciclo actual y emite una orden nueva.
+
+### Operador IA
+
+- Antes de actuar, comprueba que el campo `EJECUTOR` de la orden coincide con su identidad. Si no coincide, **no ejecuta** y se detiene.
+- Antes de modificar archivos, marca el ciclo como tomado: setea `EN_PROCESO_POR: <su_id>` en `.torre/estado.md`.
+- Mientras `EN_PROCESO_POR` apunte a otro operador, no inicia ningún trabajo, aunque haya una orden visible en la `inbox`.
+- Al cerrar el ciclo, libera el lock: `EN_PROCESO_POR: ninguno`.
+
+### Repo
+
+- Es el árbitro del lock. El estado del lock vive en `.torre/estado.md`, y como cualquier otro archivo del repo se sincroniza por commits y merges.
+- Si dos operadores intentan tomar el mismo ciclo, el conflicto se resuelve a nivel git (gana el primer merge).
+
+### Ariel
+
+- No participa del lock operativo.
+- Interviene si dos operadores quedan trabados (ambos creen tener el ciclo, o ninguno lo toma) y la Torre necesita desempate humano.
+
+Regla general: **una orden = un ejecutor**. Cualquier operador que no sea el `EJECUTOR` designado, no ejecuta.
