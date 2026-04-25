@@ -78,26 +78,31 @@ El cierre de cada orden se hace en el MISMO PR que la ejecución. Pasos:
 
 El nombre funcional del proyecto (ej. "Torre de Control", "Secretaria IA") no coincide siempre con el slug técnico del repo (`torre-control`, `agente-saas`). Una orden que solo dice el nombre funcional puede terminar ejecutándose en el repo equivocado.
 
-Para evitar eso, **toda orden** debe llevar al frente cuatro campos obligatorios:
+Para evitar eso, **toda orden** debe llevar al frente cinco campos obligatorios:
 
 - `PROYECTO_FUNCIONAL`: nombre humano del proyecto (ej. `Torre de Control`).
 - `REPO_TECNICO`: slug exacto `<owner>/<repo>` en GitHub (ej. `szlapakariel-ux/torre-control`).
-- `RAMA_OBJETIVO`: branch sobre el que se trabaja (ej. `claude/trigger-torre-mvp-rSWiS`).
+- `RAMA_TRABAJO`: rama donde el operador desarrolla y commitea (ej. `claude/<feature>`). El operador debe estar parado en esta rama para ejecutar.
+- `RAMA_DESTINO`: rama donde el trabajo va a aterrizar eventualmente (típicamente `main`). Es metadato informativo para enrutar el PR; no se verifica en runtime.
 - `EJECUTOR`: identificador del operador asignado (ver "Control de concurrencia").
 
 Si falta cualquiera de estos campos, la orden es **inválida** y nadie ejecuta.
+
+> Nota histórica: hasta ORD-2026-04-25-07 se usaba un único campo `RAMA_OBJETIVO`, ambiguo entre "rama de trabajo" y "rama destino". Las órdenes archivadas en `historial/` previas a este cambio conservan ese campo; no se retroeditan.
 
 ### Regla dura: chequeo de repo
 
 Antes de modificar ningún archivo, el operador asignado verifica:
 
 1. Que el repositorio actual coincide con `REPO_TECNICO` (típicamente con `git remote -v`).
-2. Que la rama actual coincide con `RAMA_OBJETIVO` (con `git branch --show-current`).
+2. Que la rama actual coincide con `RAMA_TRABAJO` (con `git branch --show-current`).
 3. Que su identidad coincide con `EJECUTOR`.
+
+`RAMA_DESTINO` **no** se verifica en runtime. Se usa al abrir el PR para indicar la base.
 
 **Si el repo actual no coincide con `REPO_TECNICO`, el operador NO ejecuta la orden.** Se detiene, no toca archivos, no toma el lock. Reportar en chat al humano que la orden parece dirigida a otro repo es aceptable; ejecutar "asumiendo que es lo mismo" no.
 
-El mismo criterio aplica a `RAMA_OBJETIVO`: si el operador está en otra rama, no ejecuta hasta corregir el contexto.
+El mismo criterio aplica a `RAMA_TRABAJO`: si el operador está en otra rama, no ejecuta hasta corregir el contexto.
 
 ## Control de concurrencia
 

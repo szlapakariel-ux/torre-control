@@ -17,10 +17,11 @@ Un "ciclo" es la unidad mínima de trabajo: una orden, una ejecución, un report
 - Lee `.torre/inbox/orden_actual.md`.
 - Si la orden está vacía, ambigua o hay placeholder, **no actúa** y se detiene.
 - **Chequeo de identidad de proyecto** (obligatorio antes de tocar nada):
-  1. `PROYECTO_FUNCIONAL`, `REPO_TECNICO`, `RAMA_OBJETIVO` y `EJECUTOR` deben estar presentes en la orden. Si falta alguno, la orden es inválida y el operador no actúa.
+  1. `PROYECTO_FUNCIONAL`, `REPO_TECNICO`, `RAMA_TRABAJO`, `RAMA_DESTINO` y `EJECUTOR` deben estar presentes en la orden. Si falta alguno, la orden es inválida y el operador no actúa.
   2. El repo actual debe coincidir con `REPO_TECNICO` (`git remote -v`). Si no coincide, **no ejecutar**.
-  3. La rama actual debe coincidir con `RAMA_OBJETIVO` (`git branch --show-current`). Si no, no ejecutar hasta corregir el contexto.
+  3. La rama actual debe coincidir con `RAMA_TRABAJO` (`git branch --show-current`). Si no, no ejecutar hasta corregir el contexto.
   4. La identidad del operador debe coincidir con `EJECUTOR`. Si no, no ejecutar.
+  5. `RAMA_DESTINO` no se verifica acá: queda como metadato para enrutar el PR al cierre del ciclo.
 - Si la orden es válida, ejecuta SOLO lo pedido. Sin scope creep, sin refactors colaterales, sin features extra.
 - Las tareas que la orden no pide explícitamente, no se hacen.
 
