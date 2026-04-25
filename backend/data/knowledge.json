@@ -6,7 +6,7 @@
     "type": "decision",
     "currentVersion": {
       "version": 1,
-      "title": "Jarvisz como modo de conversacion por voz",
+      "title": "Jarvisz como modo de conversación por voz",
       "description": "Lee respuestas y escucha al usuario.",
       "why": "Ariel necesita interactuar sin depender del teclado.",
       "status": "actual"
@@ -14,7 +14,7 @@
     "evolution": [
       {
         "version": 1,
-        "summary": "Jarvisz como modo de conversacion por voz"
+        "summary": "Jarvisz como modo de conversación por voz"
       }
     ],
     "createdAt": "2026-04-25T05:52:20.617Z",
