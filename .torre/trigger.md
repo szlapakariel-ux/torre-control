@@ -38,6 +38,8 @@ Cuando el ciclo está cerrado, el script imprime también:
 - slug del último ciclo (carpeta dentro de `historial/`),
 - ID de la última orden cerrada (extraído del último reporte archivado).
 
+**Orden del "último ciclo"**: se determina por el timestamp del commit más reciente que tocó cada directorio dentro de `historial/` (`git log -1 --format=%ct -- <dir>`). No se usa orden alfabético (ambiguo cuando varios slugs comparten prefijo de fecha) ni `mtime` filesystem (un clone fresco lo resetea). Si un directorio aún no está commiteado, se le asigna timestamp `0` y queda al final.
+
 ## Cómo se informa
 
 El workflow `torre-trigger-v1` se dispara automáticamente en cada `push` o `pull_request` que toca `.torre/**` (o el propio workflow). Corre el script y vuelca el resultado en el **Step Summary** del job, visible en la pestaña Actions del repo y en el check del PR.
