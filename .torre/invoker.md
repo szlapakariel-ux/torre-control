@@ -98,6 +98,33 @@ Stub V1. Mismas dependencias que Claude más una decisión previa: qué se entie
 
 Ambos vuelcan su resultado al `GITHUB_STEP_SUMMARY` del job. El workflow falla solo si el Invoker devolvió error real (exit 20 o 30); para 0/10/99 la conclusión es success.
 
+### Gates V1.1 antes de llamar al Invoker
+
+A partir de V1.1, el step del Invoker tiene dos gates **antes** de invocar el script (sin gates, el Invoker corría en cada cambio dentro de `.torre/**`, lo cual era ruidoso e iba a generar costo descontrolado al conectar IA real):
+
+- **Gate `[skip torre]`**: si el último commit message contiene la marca literal `[skip torre]`, el step se omite. Útil para ciclos de "limpieza" o cambios de doc que no requieren al Invoker. Mensaje en summary: *"Invoker omitido por [skip torre] en el último commit."*
+- **Gate "cambió `inbox/orden_actual.md`"**: si en el commit actual no se modificó `.torre/inbox/orden_actual.md`, el step se omite. Cualquier otro cambio dentro de `.torre/**` (templates, doc, scripts) **no** dispara el Invoker. Mensaje: *"Invoker omitido: `.torre/inbox/orden_actual.md` no cambió en este push."*
+- Si ambas verificaciones pasan, recién ahí se llama a `invoke_operator.sh` y este aplica sus propios filtros internos (placeholder, REQUIERE_IA, EJECUTOR, regla dura).
+
+Para que el gate de archivo cambiado funcione, el `actions/checkout` se hace con `fetch-depth: 2` (necesita `HEAD~1` para hacer `git diff`). En el primer commit del repo o un shallow clone donde `HEAD~1` no exista, el gate se saltea de forma conservadora (deja correr el Invoker) y lo registra en el summary.
+
+## Persistencia del reporte parcial
+
+Cuando el Invoker corre **localmente** (desde una terminal de un operador humano), cualquier escritura en `.torre/outbox/reporte_actual.md` queda en el working tree y se persiste si el operador commitea y pushea. Comportamiento esperado.
+
+Cuando el Invoker corre **dentro de GitHub Actions**, hay una sutileza importante: el runner es **efímero**. Cualquier escritura en `outbox/reporte_actual.md` ocurre en el filesystem del runner y **NO se persiste en el repositorio** salvo que se haga uno de:
+
+- `git commit && git push` desde el propio workflow (auto-commit), o
+- subir el archivo como `actions/upload-artifact`.
+
+V1.1 **no implementa ninguno de los dos**. El reporte parcial que escribe el Invoker en CI sirve solo como diagnóstico visible en el log del job y en el `GITHUB_STEP_SUMMARY`; en cuanto termina el job se descarta.
+
+Implicaciones prácticas:
+
+- El `outbox/reporte_actual.md` que ve cualquiera leyendo el repo es **el último que un humano u operador real haya commiteado**, no lo que escribió el Invoker en su última corrida CI.
+- No hay riesgo de que el Invoker pise el reporte canónico, porque sus cambios viven y mueren en el runner.
+- Si más adelante se quiere persistir el diagnóstico del Invoker, hay dos caminos: (a) auto-commit con cuidado de no loopear y respetando `[skip torre]`, o (b) artifacts (más seguro pero menos visible). Decisión diferida hasta que sea necesario.
+
 ## Guardrails (resumen)
 
 - **No mergea, no deploya, no activa flags, no borra archivos.** Solo lee y dispatcha.

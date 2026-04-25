@@ -81,13 +81,54 @@ for var in PROYECTO REPO_TEC RAMA_TRA RAMA_DES EJECUTOR; do
   fi
 done
 
-# 5. Guardrail: repo actual debe coincidir con REPO_TECNICO
-ORIGIN_URL=$(git remote get-url origin 2>/dev/null || true)
-if [[ -n "$ORIGIN_URL" ]]; then
-  if [[ "$ORIGIN_URL" != *"$REPO_TEC"* ]]; then
-    log "GUARDRAIL: origin='$ORIGIN_URL' no contiene REPO_TECNICO='$REPO_TEC'. Abortando."
-    exit $EXIT_GUARDRAIL
+# 5. Guardrail: repo actual debe coincidir con REPO_TECNICO (comparación exacta).
+#
+# normalize_repo() acepta cualquiera de estas formas y devuelve "owner/repo":
+#   https://github.com/owner/repo.git
+#   https://github.com/owner/repo
+#   git@github.com:owner/repo.git
+#   git@github.com:owner/repo
+#   owner/repo
+#   http://user@host:port/git/owner/repo            (proxy local de testing)
+#
+# Cualquier otra forma cae a un fallback que devuelve los últimos dos segmentos
+# del path. Si no se puede normalizar, devuelve el string crudo (la comparación
+# fallará y el guardrail dispara, que es el comportamiento conservador).
+normalize_repo() {
+  local raw="$1"
+  # Quitar `.git` final
+  raw="${raw%.git}"
+  # Forma SSH: usuario@host:owner/repo
+  if [[ "$raw" =~ ^[^/@]+@[^:/]+:(.+)$ ]]; then
+    raw="${BASH_REMATCH[1]}"
   fi
+  # Forma HTTP/HTTPS: quitar esquema y host (con auth y puerto opcionales)
+  if [[ "$raw" =~ ^https?://[^/]+/(.*)$ ]]; then
+    raw="${BASH_REMATCH[1]}"
+  fi
+  # Si quedaron más de 1 slash, tomar los últimos 2 segmentos
+  local slash_count
+  slash_count=$(echo -n "$raw" | tr -cd '/' | wc -c)
+  if [[ "$slash_count" -gt 1 ]]; then
+    raw=$(echo "$raw" | awk -F/ '{print $(NF-1) "/" $NF}')
+  fi
+  echo "$raw"
+}
+
+ORIGIN_URL=$(git remote get-url origin 2>/dev/null || true)
+if [[ -z "$ORIGIN_URL" ]]; then
+  log "GUARDRAIL: no hay 'origin' configurado en este repo. Abortando."
+  exit $EXIT_GUARDRAIL
+fi
+
+ORIGIN_NORMALIZED=$(normalize_repo "$ORIGIN_URL")
+REPO_TEC_NORMALIZED=$(normalize_repo "$REPO_TEC")
+
+if [[ "$ORIGIN_NORMALIZED" != "$REPO_TEC_NORMALIZED" ]]; then
+  log "GUARDRAIL: origin normalizado ('$ORIGIN_NORMALIZED') != REPO_TECNICO normalizado ('$REPO_TEC_NORMALIZED'). Abortando."
+  log "  origin crudo: '$ORIGIN_URL'"
+  log "  REPO_TECNICO crudo: '$REPO_TEC'"
+  exit $EXIT_GUARDRAIL
 fi
 
 # 6. Si EJECUTOR=humano, invoker no actúa
