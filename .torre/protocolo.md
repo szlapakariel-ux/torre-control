@@ -74,6 +74,31 @@ El cierre de cada orden se hace en el MISMO PR que la ejecución. Pasos:
 - **No** ejecutar más de una orden por ciclo.
 - **No** avanzar sin nueva orden de Torre.
 
+## Identidad de proyecto
+
+El nombre funcional del proyecto (ej. "Torre de Control", "Secretaria IA") no coincide siempre con el slug técnico del repo (`torre-control`, `agente-saas`). Una orden que solo dice el nombre funcional puede terminar ejecutándose en el repo equivocado.
+
+Para evitar eso, **toda orden** debe llevar al frente cuatro campos obligatorios:
+
+- `PROYECTO_FUNCIONAL`: nombre humano del proyecto (ej. `Torre de Control`).
+- `REPO_TECNICO`: slug exacto `<owner>/<repo>` en GitHub (ej. `szlapakariel-ux/torre-control`).
+- `RAMA_OBJETIVO`: branch sobre el que se trabaja (ej. `claude/trigger-torre-mvp-rSWiS`).
+- `EJECUTOR`: identificador del operador asignado (ver "Control de concurrencia").
+
+Si falta cualquiera de estos campos, la orden es **inválida** y nadie ejecuta.
+
+### Regla dura: chequeo de repo
+
+Antes de modificar ningún archivo, el operador asignado verifica:
+
+1. Que el repositorio actual coincide con `REPO_TECNICO` (típicamente con `git remote -v`).
+2. Que la rama actual coincide con `RAMA_OBJETIVO` (con `git branch --show-current`).
+3. Que su identidad coincide con `EJECUTOR`.
+
+**Si el repo actual no coincide con `REPO_TECNICO`, el operador NO ejecuta la orden.** Se detiene, no toca archivos, no toma el lock. Reportar en chat al humano que la orden parece dirigida a otro repo es aceptable; ejecutar "asumiendo que es lo mismo" no.
+
+El mismo criterio aplica a `RAMA_OBJETIVO`: si el operador está en otra rama, no ejecuta hasta corregir el contexto.
+
 ## Control de concurrencia
 
 El sistema soporta múltiples operadores IA (Claude Code, Codex, otros). Para que no se pisen entre sí:

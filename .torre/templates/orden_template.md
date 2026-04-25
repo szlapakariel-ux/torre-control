@@ -3,7 +3,10 @@
 - **ID**: ORD-YYYYMMDD-NN
 - **Fecha**: YYYY-MM-DD
 - **Emisor**: Torre
-- **EJECUTOR**: <claude | codex | humano | otro>   <!-- OBLIGATORIO. Sin este campo la orden es inválida. Ver protocolo.md, sección "Control de concurrencia". -->
+- **PROYECTO_FUNCIONAL**: <nombre humano del proyecto, ej. "Torre de Control">   <!-- OBLIGATORIO. Ver protocolo.md, sección "Identidad de proyecto". -->
+- **REPO_TECNICO**: <owner/repo, ej. "szlapakariel-ux/torre-control">   <!-- OBLIGATORIO. Si el repo actual no coincide, el operador NO ejecuta. -->
+- **RAMA_OBJETIVO**: <branch, ej. "claude/feature-x">   <!-- OBLIGATORIO. -->
+- **EJECUTOR**: <claude | codex | humano | otro>   <!-- OBLIGATORIO. Ver protocolo.md, sección "Control de concurrencia". -->
 - **Operador asignado** (opcional, descriptivo): <Claude Code | Codex | otro>
 
 ## Objetivo

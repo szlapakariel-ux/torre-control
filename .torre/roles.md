@@ -51,12 +51,17 @@ Cuando hay más de un operador IA disponible, los roles tienen obligaciones extr
 ### Torre
 
 - Asigna el ejecutor al emitir la orden, mediante el campo `EJECUTOR` (ej. `EJECUTOR: claude`, `EJECUTOR: codex`).
-- No emite una orden sin ejecutor designado: una orden sin `EJECUTOR` es inválida.
+- Declara la identidad de proyecto en la orden mediante `PROYECTO_FUNCIONAL`, `REPO_TECNICO` y `RAMA_OBJETIVO` (ver `protocolo.md`, sección "Identidad de proyecto").
+- No emite una orden sin esos cuatro campos: una orden incompleta es inválida.
 - No reasigna ejecutor a mitad de un ciclo. Si quiere cambiar de operador, cierra el ciclo actual y emite una orden nueva.
 
 ### Operador IA
 
-- Antes de actuar, comprueba que el campo `EJECUTOR` de la orden coincide con su identidad. Si no coincide, **no ejecuta** y se detiene.
+- Antes de actuar, **verifica identidad de proyecto** (ver `protocolo.md`, sección "Identidad de proyecto"):
+  - `PROYECTO_FUNCIONAL`, `REPO_TECNICO`, `RAMA_OBJETIVO`, `EJECUTOR` deben estar todos en la orden.
+  - El repo actual debe coincidir con `REPO_TECNICO`. Si no coincide, **no ejecuta**, no toma el lock, no modifica archivos.
+  - La rama actual debe coincidir con `RAMA_OBJETIVO`.
+  - Su identidad debe coincidir con `EJECUTOR`.
 - Antes de modificar archivos, marca el ciclo como tomado: setea `EN_PROCESO_POR: <su_id>` en `.torre/estado.md`.
 - Mientras `EN_PROCESO_POR` apunte a otro operador, no inicia ningún trabajo, aunque haya una orden visible en la `inbox`.
 - Al cerrar el ciclo, libera el lock: `EN_PROCESO_POR: ninguno`.
