@@ -519,11 +519,86 @@ html, body {
 .intent-decisión     { color: var(--accent); background: var(--accent-dim); }
 .intent-duda         { color: #f59e0b; background: #f59e0b12; }
 .intent-idea         { color: #22c55e; background: #22c55e12; }
+.intent-browser      { color: #06b6d4; background: #06b6d412; }
 .intent-consulta_general { color: var(--text-muted); background: transparent; }
 
 .message-bubble-body {
   display: flex;
   flex-direction: column;
+}
+
+/* ── Browser Panel (sidebar) ──────────────────────── */
+.browser-panel {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.browser-url-input {
+  flex: 1;
+  background: var(--bg-main);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 11px;
+  padding: 5px 8px;
+  outline: none;
+  min-width: 0;
+  transition: border-color 0.2s;
+}
+
+.browser-url-input::placeholder {
+  color: var(--text-muted);
+}
+
+.browser-url-input:focus {
+  border-color: #06b6d4;
+}
+
+.browser-fetch-btn {
+  background: #06b6d414;
+  border: 1px solid #06b6d4;
+  color: #06b6d4;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.browser-fetch-btn:hover {
+  background: #06b6d428;
+}
+
+.browser-fetch-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.browser-result {
+  margin-top: 8px;
+  font-size: 11px;
+  line-height: 1.55;
+  color: var(--text-muted);
+  max-height: 160px;
+  overflow-y: auto;
+  word-break: break-word;
+  display: none;
+}
+
+.browser-result:not(:empty) {
+  display: block;
+}
+
+.browser-result--ok {
+  color: var(--text);
+}
+
+.browser-result--error {
+  color: #ef4444;
 }
 
 /* ── Responsive ───────────────────────────────────── */

@@ -3,6 +3,7 @@ const cors = require('cors');
 const { classifyIntent } = require('./services/intentClassifier');
 const { saveMessage } = require('./services/storage');
 const { readKnowledge, saveKnowledgeItem, updateKnowledgeItem } = require('./services/knowledgeStore');
+const { fetchPage } = require('./services/browserService');
 
 const app = express();
 const PORT = 3001;
@@ -79,6 +80,23 @@ app.get('/api/knowledge', (req, res) => {
   const all = readKnowledge();
   const result = project ? all.filter((i) => i.project === project) : all;
   res.json({ ok: true, items: result });
+});
+
+// ── Browser: leer una URL ─────────────────────────────
+
+app.post('/api/browse', async (req, res) => {
+  const { url } = req.body ?? {};
+
+  if (!url || typeof url !== 'string' || !url.trim()) {
+    return res.status(400).json({ ok: false, error: 'Falta el campo url.' });
+  }
+
+  try {
+    const result = await fetchPage(url.trim());
+    res.json({ ok: true, url: result.url, text: result.text, length: result.length });
+  } catch (err) {
+    res.status(422).json({ ok: false, error: err.message ?? 'No se pudo leer la página.' });
+  }
 });
 
 app.get('/api/health', (_req, res) => {
