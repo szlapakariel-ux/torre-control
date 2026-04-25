@@ -34,6 +34,13 @@ const RULES = [
     response: 'Interesante idea. ¿Querés explorarla ahora o la dejamos en el backlog?',
     nextStep: 'Evaluar viabilidad e impacto antes de ejecutar.',
   },
+  {
+    intent: 'browser',
+    priority: 'media',
+    keywords: ['leelo', 'lee esto', 'leer página', 'leer la página', 'leer url', 'leer link', 'abrir link', 'abrir url', 'navegar', 'buscar en', 'revisar link', 'revisar url', 'cargar página'],
+    response: 'Entendido. Accedí a la página y estoy analizando el contenido.',
+    nextStep: 'Resumir la información clave de la página para continuar.',
+  },
 ];
 
 const DEFAULT = {

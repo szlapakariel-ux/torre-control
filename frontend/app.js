@@ -1,5 +1,6 @@
 // ── Config ────────────────────────────────────────────
-const BACKEND_URL = 'http://localhost:3001/api/message';
+const BACKEND_URL  = 'http://localhost:3001/api/message';
+const BROWSE_URL   = 'http://localhost:3001/api/browse';
 
 const INTENT_LABELS = {
   error:            'Error',
@@ -7,6 +8,7 @@ const INTENT_LABELS = {
   'decisión':       'Decisión',
   duda:             'Duda',
   idea:             'Idea',
+  browser:          'Navegador',
   consulta_general: 'Consulta',
 };
 
@@ -113,6 +115,26 @@ function createTypingIndicator() {
   return wrapper;
 }
 
+// ── URL detection ─────────────────────────────────────
+const URL_REGEX = /https?:\/\/[^\s"'<>]+/i;
+
+function extractURL(text) {
+  const match = text.match(URL_REGEX);
+  if (!match) return null;
+
+  let url = match[0];
+  // Strip unbalanced trailing closing parentheses one at a time
+  let opens  = (url.match(/\(/g) || []).length;
+  let closes = (url.match(/\)/g) || []).length;
+  while (closes > opens && url.endsWith(')')) {
+    url = url.slice(0, -1);
+    closes--;
+  }
+  // Strip remaining trailing sentence punctuation after parenthesis balancing
+  url = url.replace(/[.,;!?]+$/, '');
+  return url;
+}
+
 // ── Send message (async → backend) ───────────────────
 async function sendMessage(autoSend = false) {
   const text = chatInput.value.trim();
@@ -131,6 +153,29 @@ async function sendMessage(autoSend = false) {
   scrollToBottom();
 
   let responseText = '';
+  let messageToSend = text;
+
+  // ── If the message contains a URL, fetch page content first ──
+  const detectedUrl = extractURL(text);
+  if (detectedUrl) {
+    try {
+      const browseRes  = await fetch(BROWSE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: detectedUrl }),
+      });
+      const browseData = await browseRes.json();
+      if (browseData.ok && browseData.text) {
+        messageToSend = `${text}\n\n[Contenido de ${detectedUrl}]:\n${browseData.text}`;
+      } else {
+        chatMessages.appendChild(createSystemMessage('⚠️ No se pudo leer la página indicada. El mensaje se enviará sin el contenido.', null));
+        scrollToBottom();
+      }
+    } catch {
+      chatMessages.appendChild(createSystemMessage('⚠️ No se pudo acceder a la URL. El mensaje se enviará sin el contenido.', null));
+      scrollToBottom();
+    }
+  }
 
   try {
     const res = await fetch(BACKEND_URL, {
@@ -139,7 +184,7 @@ async function sendMessage(autoSend = false) {
       body: JSON.stringify({
         project: document.getElementById('projectSelector').value,
         mode: 'pensar',
-        message: text,
+        message: messageToSend,
       }),
     });
 
@@ -312,3 +357,54 @@ chatInput.addEventListener('keydown', (e) => {
 });
 
 sendButton.addEventListener('click', () => sendMessage());
+
+// ── Browser panel ─────────────────────────────────────
+const browserUrlInput = document.getElementById('browserUrlInput');
+const browserFetchBtn = document.getElementById('browserFetchBtn');
+const browserResult   = document.getElementById('browserResult');
+
+async function fetchAndShowPage() {
+  const url = browserUrlInput.value.trim();
+  if (!url) return;
+
+  browserFetchBtn.disabled = true;
+  browserResult.textContent = '⏳ Leyendo página...';
+  browserResult.className = 'browser-result';
+
+  try {
+    const res  = await fetch(BROWSE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url }),
+    });
+    const data = await res.json();
+
+    if (data.ok && data.text) {
+      browserResult.textContent = data.text;
+      browserResult.className = 'browser-result browser-result--ok';
+
+      // Auto-fill chat input with URL so user can ask questions about the page
+      chatInput.value = url + ' ';
+      chatInput.focus();
+      chatInput.style.height = 'auto';
+      chatInput.style.height = Math.min(chatInput.scrollHeight, 160) + 'px';
+    } else {
+      browserResult.textContent = '⚠️ ' + (data.error ?? 'No se pudo leer la página.');
+      browserResult.className = 'browser-result browser-result--error';
+    }
+  } catch {
+    browserResult.textContent = '⚠️ No se pudo conectar con el backend.';
+    browserResult.className = 'browser-result browser-result--error';
+  }
+
+  browserFetchBtn.disabled = false;
+}
+
+browserFetchBtn.addEventListener('click', fetchAndShowPage);
+
+browserUrlInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    fetchAndShowPage();
+  }
+});
