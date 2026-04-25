@@ -1,9 +1,12 @@
 name: torre-trigger-v1
 
-# Trigger V1 del sistema postal .torre/.
+# Trigger V1 (con blindaje V1.1) del sistema postal .torre/.
 # Corre el detector de cierre de ciclo cada vez que cambia algo dentro de .torre/.
 # El resultado queda visible en el resumen del job (Actions UI) y, en PRs,
 # como check status. No notifica externamente: V1 = informativo.
+#
+# El step del Invoker (segundo) tiene gates V1.1: solo dispara si en este push
+# cambió .torre/inbox/orden_actual.md y el commit no lleva la marca [skip torre].
 
 on:
   push:
@@ -22,7 +25,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
+        # `fetch-depth: 2` necesario para que `git diff HEAD~1 HEAD` funcione
+        # en pushes de un solo commit. Para PRs, GitHub ya resuelve la base.
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
       - name: Detectar estado del ciclo .torre
         id: detect
@@ -56,12 +63,47 @@ jobs:
           fi
           exit 0
 
-      - name: Intentar invocar operador IA si la orden lo pide (Invoker V1)
+      - name: Intentar invocar operador IA si la orden lo pide (Invoker V1.1)
         # Corre incluso si el step anterior reportó "ciclo abierto":
         # ese es justamente el escenario donde puede haber orden activa.
+        # Tres gates V1.1 deciden ANTES de llamar al script:
+        #  (a) [skip torre] en el commit message → omitir.
+        #  (b) inbox/orden_actual.md no cambió en el último commit → omitir.
+        #  (c) si pasa los dos anteriores, llamar a invoke_operator.sh.
         if: ${{ always() }}
         shell: bash
         run: |
+          set -euo pipefail
+
+          INBOX_PATH=".torre/inbox/orden_actual.md"
+          summary() { printf '%s\n' "$1" >> "$GITHUB_STEP_SUMMARY"; }
+
+          summary ""
+          summary "## Trigger V1.1 — Invoker IA"
+          summary ""
+
+          # Gate (a): [skip torre] en el último commit message
+          last_msg=$(git log -1 --pretty=%B)
+          if echo "$last_msg" | grep -qF "[skip torre]"; then
+            echo "[invoker-gate] commit lleva [skip torre]; omitido"
+            summary "Resultado: **Invoker omitido por [skip torre]** en el último commit."
+            exit 0
+          fi
+
+          # Gate (b): cambió INBOX_PATH en el último commit?
+          # Si es un primer commit (no hay HEAD~1), permitir el run (conservador).
+          if git rev-parse --verify HEAD~1 >/dev/null 2>&1; then
+            if ! git diff --name-only HEAD~1 HEAD | grep -qE "^${INBOX_PATH}$"; then
+              echo "[invoker-gate] $INBOX_PATH no cambió en el último commit; omitido"
+              summary "Resultado: **Invoker omitido**: \`$INBOX_PATH\` no cambió en este push."
+              exit 0
+            fi
+          else
+            echo "[invoker-gate] no hay HEAD~1; salteo el filtro de archivo cambiado"
+            summary "Nota: primer commit del repo o shallow clone, no se aplica el filtro de \`$INBOX_PATH\` cambiado."
+          fi
+
+          # Pasa los gates: llamar al Invoker.
           set +e
           out=$(.torre/scripts/invoke_operator.sh 2>&1)
           code=$?
@@ -69,25 +111,20 @@ jobs:
 
           echo "$out"
 
-          {
-            echo ""
-            echo "## Trigger V1 — Invoker IA"
-            echo ""
-            echo '```'
-            echo "$out"
-            echo "exit code: $code"
-            echo '```'
-            echo ""
-            case "$code" in
-              0)  echo "Resultado: invocación exitosa." ;;
-              10) echo "Resultado: no aplica (sin orden activa, REQUIERE_IA != si, o EJECUTOR = humano)." ;;
-              20) echo "Resultado: orden inválida (faltan campos obligatorios)." ;;
-              30) echo "Resultado: guardrail disparó (repo actual no coincide con REPO_TECNICO)." ;;
-              40) echo "Resultado: operador desconocido o adaptador no disponible." ;;
-              99) echo "Resultado: adaptador respondió como STUB. Operador real no configurado todavía." ;;
-              *)  echo "Resultado: exit inesperado ($code)." ;;
-            esac
-          } >> "$GITHUB_STEP_SUMMARY"
+          summary '```'
+          while IFS= read -r line; do summary "$line"; done <<< "$out"
+          summary "exit code: $code"
+          summary '```'
+          summary ""
+          case "$code" in
+            0)  summary "Resultado: invocación exitosa." ;;
+            10) summary "Resultado: **no aplica**. Detalle en el log (placeholder, REQUIERE_IA != si, o EJECUTOR = humano)." ;;
+            20) summary "Resultado: **orden inválida** (faltan campos obligatorios)." ;;
+            30) summary "Resultado: **guardrail disparó** (repo actual no coincide con REPO_TECNICO normalizado)." ;;
+            40) summary "Resultado: **operador desconocido** o adaptador no disponible." ;;
+            99) summary "Resultado: **adaptador STUB**. Operador real no configurado todavía." ;;
+            *)  summary "Resultado: exit inesperado ($code)." ;;
+          esac
 
           # 0, 10, 99 → success (estado normal o esperado).
           # 20, 30, 40 → fail (algo está mal en la orden o configuración).

@@ -3,5 +3,3 @@
 No hay ciclo en curso. Último ciclo cerrado archivado en `.torre/historial/`.
 
 Cuando la Torre publique una nueva orden en `.torre/inbox/orden_actual.md`, el operador IA designado en el campo `EJECUTOR` reemplazará este archivo siguiendo `.torre/templates/reporte_template.md`. Antes de actuar, el operador debe verificar la identidad de proyecto y el tipo de orden (ver `protocolo.md`).
-
-Si la orden lleva `REQUIERE_IA: si`, el Invoker IA V1 puede dejar acá un reporte parcial preliminar — el operador real, cuando ejecute, debe sobreescribirlo con el reporte definitivo (ver `invoker.md`).
