@@ -185,3 +185,5 @@ Con esos campos, el Invoker:
 - No verifica `TIPO_ORDEN` (deja eso al protocolo; el Invoker actúa solo si `REQUIERE_IA: si`).
 
 Todo eso es V2 / iteraciones siguientes.
+
+<!-- TEST 2 (rama torre/test-skip-torre-strict): nota temporal para validar [skip torre] estricto. No mergear. -->
