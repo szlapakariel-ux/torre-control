@@ -17,10 +17,18 @@ Un "ciclo" es la unidad mínima de trabajo: una orden, una ejecución, un report
 - Lee `.torre/inbox/orden_actual.md`.
 - Si la orden está vacía, ambigua o hay placeholder, **no actúa** y se detiene.
 - **Chequeo de identidad de proyecto** (obligatorio antes de tocar nada):
-  1. `PROYECTO_FUNCIONAL`, `REPO_TECNICO`, `RAMA_OBJETIVO` y `EJECUTOR` deben estar presentes en la orden. Si falta alguno, la orden es inválida y el operador no actúa.
-  2. El repo actual debe coincidir con `REPO_TECNICO` (`git remote -v`). Si no coincide, **no ejecutar**.
-  3. La rama actual debe coincidir con `RAMA_OBJETIVO` (`git branch --show-current`). Si no, no ejecutar hasta corregir el contexto.
-  4. La identidad del operador debe coincidir con `EJECUTOR`. Si no, no ejecutar.
+  1. Los siete campos obligatorios deben estar presentes en la orden: `PROYECTO_FUNCIONAL`, `REPO_TECNICO`, `RAMA_TRABAJO`, `RAMA_DESTINO`, `EJECUTOR`, `TIPO_ORDEN`, `REPO_ORIGEN`. Si falta alguno, la orden es inválida y el operador no actúa.
+  2. Coherencia: si `TIPO_ORDEN: local`, debe cumplirse `REPO_ORIGEN == REPO_TECNICO`. Si `TIPO_ORDEN: remota`, debe cumplirse `REPO_ORIGEN ≠ REPO_TECNICO`. Cualquier otro caso = inválida.
+  3. **Ramificación según `TIPO_ORDEN`:**
+     - **`local`**:
+       a. El repo actual debe coincidir con `REPO_TECNICO` (`git remote -v`). Si no, **no ejecutar**.
+       b. La rama actual debe coincidir con `RAMA_TRABAJO` (`git branch --show-current`). Si no, no ejecutar hasta corregir.
+       c. La identidad del operador debe coincidir con `EJECUTOR`. Si no, no ejecutar.
+       d. `RAMA_DESTINO` no se verifica acá; queda como metadato para enrutar el PR al cierre.
+     - **`remota`**:
+       a. El repo actual debe coincidir con `REPO_ORIGEN` (la Torre Central). Si no, no ejecutar.
+       b. La identidad del operador debe coincidir con `EJECUTOR`.
+       c. El operador **no ejecuta el contenido** de la orden — hace transporte (ver "Flujo de orden remota").
 - Si la orden es válida, ejecuta SOLO lo pedido. Sin scope creep, sin refactors colaterales, sin features extra.
 - Las tareas que la orden no pide explícitamente, no se hacen.
 
@@ -60,6 +68,39 @@ Un "ciclo" es la unidad mínima de trabajo: una orden, una ejecución, un report
 ### 7. Stop
 
 - El operador no inicia ningún trabajo nuevo. Espera a que la Torre publique la próxima orden en `inbox/`.
+
+## Flujo de orden remota
+
+Aplica solo cuando la orden tiene `TIPO_ORDEN: remota`. El repo emisor (típicamente `torre-control`) actúa como Torre Central; el repo receptor ejecuta normalmente cuando la orden le llega.
+
+### En la Torre Central (repo emisor, ej. `torre-control`)
+
+1. **Recepción**: Torre escribe la orden remota en `.torre/inbox/orden_actual.md` con `TIPO_ORDEN: remota`, `REPO_ORIGEN: <repo de la Torre Central>`, `REPO_TECNICO: <repo destino>`.
+2. **Detección**: el operador local lee la orden y detecta `TIPO_ORDEN: remota`. **No ejecuta el contenido** de las tareas.
+3. **Transporte de salida**: el operador mueve la orden a `.torre/remotas/<repo-destino-slug>/orden_<ID>.md`. El nombre del archivo lleva el ID completo de la orden.
+4. **Cierre del ciclo de emisión**: el operador escribe un reporte en `outbox/reporte_actual.md` que dice "orden remota encolada para transporte hacia `<destino>`", actualiza `estado.md`, y archiva el par en `.torre/historial/remoto_<fecha>_<slug>/`. Libera el lock.
+
+### Transporte propiamente dicho
+
+5. **Publicación en el destino** (manual en MVP): alguien con acceso a ambos repos copia el contenido de `.torre/remotas/<destino>/orden_<ID>.md` al archivo `<destino>/.torre/inbox/orden_actual.md`. Para el repo destino aparece como orden local: su `REPO_TECNICO` coincide con su repo, así que el chequeo dura local pasa. La cola en la Torre Central queda con la orden archivada como evidencia de qué se transportó.
+
+### En el repo destino (ej. `agente-saas`)
+
+6. **Ejecución local**: el operador en el repo destino ejecuta la orden siguiendo el flujo local de 7 pasos. Cierra ciclo y archiva en su propio `historial/`.
+
+### Vuelta del reporte a la Torre Central
+
+7. **Copia del reporte**: alguien (humano o agente con multi-repo) copia el reporte cerrado del repo destino a `<torre-central>/.torre/reportes-remotos/<repo-slug>/reporte_<ID>.md`. Es una **copia** (snapshot, no canon); el reporte canónico vive en el `historial/` del repo destino.
+8. **Cierre del ciclo remoto en la Torre Central**: un nuevo ciclo en la Central (puede ser el mismo operador, otra orden Torre, o un trigger automatizado en el futuro) toma el reporte recibido, lo copia a `historial/remoto_<fecha>_<slug>/reporte_actual.md` (donde ya está la orden emitida), actualiza `estado.md` reduciendo `ORDENES_REMOTAS_EN_VUELO`, y deja el ciclo remoto cerrado del lado de la Central.
+
+### Lo que NO hace este flujo
+
+- No automatiza el transporte. V1 es manual.
+- No notifica al destino cuando llega una orden encolada.
+- No detecta si el destino ya cerró su ciclo.
+- No verifica firma / autenticidad de la orden.
+
+Todo eso es V2 / iteraciones posteriores.
 
 ## Control de concurrencia
 

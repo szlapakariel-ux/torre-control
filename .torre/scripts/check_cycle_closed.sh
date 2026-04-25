@@ -58,10 +58,21 @@ if [[ "$archived_count" -eq 0 ]]; then
   exit 1
 fi
 
-# Reportar último ciclo archivado
-last_dir=$(find "$HISTORIAL" -mindepth 1 -maxdepth 1 -type d \
-            | sort -r \
-            | head -1)
+# Reportar último ciclo archivado.
+# Orden por timestamp del commit más reciente que tocó cada dir (git log %ct).
+# No usamos sort alfabético (ambiguo cuando varios slugs comparten fecha) ni
+# filesystem mtime (un clone fresco lo resetea). Si git log no devuelve nada
+# para algún dir (no commiteado todavía), usamos 0 como timestamp.
+last_dir=$(
+  find "$HISTORIAL" -mindepth 1 -maxdepth 1 -type d \
+    | while read -r dir; do
+        ts=$(git log -1 --format=%ct -- "$dir" 2>/dev/null || true)
+        printf '%s\t%s\n' "${ts:-0}" "$dir"
+      done \
+    | sort -nr -k1,1 \
+    | head -1 \
+    | cut -f2-
+)
 last_slug="${last_dir#$HISTORIAL/}"
 
 # Intentar extraer ID de orden del último reporte archivado

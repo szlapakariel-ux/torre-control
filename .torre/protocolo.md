@@ -78,26 +78,88 @@ El cierre de cada orden se hace en el MISMO PR que la ejecución. Pasos:
 
 El nombre funcional del proyecto (ej. "Torre de Control", "Secretaria IA") no coincide siempre con el slug técnico del repo (`torre-control`, `agente-saas`). Una orden que solo dice el nombre funcional puede terminar ejecutándose en el repo equivocado.
 
-Para evitar eso, **toda orden** debe llevar al frente cuatro campos obligatorios:
+Para evitar eso, **toda orden** debe llevar al frente siete campos obligatorios:
 
 - `PROYECTO_FUNCIONAL`: nombre humano del proyecto (ej. `Torre de Control`).
-- `REPO_TECNICO`: slug exacto `<owner>/<repo>` en GitHub (ej. `szlapakariel-ux/torre-control`).
-- `RAMA_OBJETIVO`: branch sobre el que se trabaja (ej. `claude/trigger-torre-mvp-rSWiS`).
+- `REPO_TECNICO`: slug exacto `<owner>/<repo>` en GitHub donde el trabajo se ejecuta (ej. `szlapakariel-ux/torre-control`).
+- `RAMA_TRABAJO`: rama donde el operador desarrolla y commitea (ej. `claude/<feature>`). El operador debe estar parado en esta rama para ejecutar.
+- `RAMA_DESTINO`: rama donde el trabajo va a aterrizar eventualmente (típicamente `main`). Es metadato informativo para enrutar el PR; no se verifica en runtime.
 - `EJECUTOR`: identificador del operador asignado (ver "Control de concurrencia").
+- `TIPO_ORDEN`: `local` | `remota`. Default `local` si no se declara, por retro-compatibilidad. Una orden `remota` se emite desde una Torre Central hacia un repo destino (ver "Órdenes remotas").
+- `REPO_ORIGEN`: repo donde la orden fue **emitida**. Para `TIPO_ORDEN: local`, vale lo mismo que `REPO_TECNICO`. Para `TIPO_ORDEN: remota`, apunta a la Torre Central que la emite.
 
 Si falta cualquiera de estos campos, la orden es **inválida** y nadie ejecuta.
 
-### Regla dura: chequeo de repo
+Reglas de coherencia:
+- Una orden `remota` con `REPO_ORIGEN == REPO_TECNICO` es inválida (debería ser local).
+- Una orden `local` con `REPO_ORIGEN ≠ REPO_TECNICO` es inválida.
 
-Antes de modificar ningún archivo, el operador asignado verifica:
+> Nota histórica: hasta ORD-2026-04-25-07 se usaba un único campo `RAMA_OBJETIVO`, ambiguo entre "rama de trabajo" y "rama destino". Hasta ORD-2026-04-25-11 las órdenes no llevaban `TIPO_ORDEN` ni `REPO_ORIGEN`. Las órdenes archivadas en `historial/` previas a cada cambio se interpretan implícitamente: `local` y `REPO_ORIGEN == REPO_TECNICO`. No se retroeditan.
+
+### Regla dura: chequeo de repo (solo órdenes locales)
+
+Para órdenes con `TIPO_ORDEN: local`, antes de modificar ningún archivo, el operador asignado verifica:
 
 1. Que el repositorio actual coincide con `REPO_TECNICO` (típicamente con `git remote -v`).
-2. Que la rama actual coincide con `RAMA_OBJETIVO` (con `git branch --show-current`).
+2. Que la rama actual coincide con `RAMA_TRABAJO` (con `git branch --show-current`).
 3. Que su identidad coincide con `EJECUTOR`.
+
+`RAMA_DESTINO` **no** se verifica en runtime. Se usa al abrir el PR para indicar la base.
 
 **Si el repo actual no coincide con `REPO_TECNICO`, el operador NO ejecuta la orden.** Se detiene, no toca archivos, no toma el lock. Reportar en chat al humano que la orden parece dirigida a otro repo es aceptable; ejecutar "asumiendo que es lo mismo" no.
 
-El mismo criterio aplica a `RAMA_OBJETIVO`: si el operador está en otra rama, no ejecuta hasta corregir el contexto.
+El mismo criterio aplica a `RAMA_TRABAJO`: si el operador está en otra rama, no ejecuta hasta corregir el contexto.
+
+Para órdenes con `TIPO_ORDEN: remota`, este chequeo dura **no se aplica al repo actual** (ese es justamente el punto: la orden está dirigida a otro repo). En su lugar, el operador verifica que está en el repo `REPO_ORIGEN` (para poder hacer transporte) y procede según el flujo de la sección "Órdenes remotas".
+
+## Órdenes remotas
+
+Mecanismo para que una **Torre Central** (típicamente `torre-control`) emita órdenes hacia otros repos sin violar la regla dura de identidad de proyecto. Ver `torre_central_propuesta.md` para el contexto del diseño.
+
+### Conceptos
+
+- **Repo-local**: cada repo (incluyendo `torre-control`) ejecuta sus propias órdenes locales con su `.torre/` operativo. Sin cambios respecto al protocolo previo.
+- **Torre Central**: rol opcional que puede asumir un repo (`torre-control` por defecto). Coordina órdenes destinadas a otros repos: las **emite, encola, transporta y archiva**. NO ejecuta el contenido de esas órdenes.
+
+Ambos roles conviven en el mismo repo.
+
+### Estructura de carpetas extendida
+
+```
+.torre/
+  inbox/orden_actual.md          # solo orden LOCAL en curso
+  outbox/reporte_actual.md       # solo reporte LOCAL en curso
+  remotas/                       # cola de órdenes remotas pendientes de transporte
+    <repo-slug>/                 # ej. agente-saas/
+      orden_<ID>.md
+  reportes-remotos/              # reportes que vinieron de vuelta del destino
+    <repo-slug>/
+      reporte_<ID>.md
+  historial/
+    <fecha>_<slug>/              # ciclos LOCALES
+    remoto_<fecha>_<slug>/       # ciclos remotos: orden emitida + reporte recibido
+```
+
+### Flujo de una orden remota (7 pasos)
+
+1. **Torre redacta** orden remota en `torre-control/.torre/inbox/orden_actual.md` con `TIPO_ORDEN: remota`, `REPO_ORIGEN: torre-control`, `REPO_TECNICO: <destino>`.
+2. **Operador local lee** la orden, detecta `TIPO_ORDEN: remota`, **no ejecuta el contenido**.
+3. **Operador hace transporte de salida**: mueve la orden a `.torre/remotas/<repo-slug>/orden_<ID>.md`. Cierra el ciclo de **emisión** con un reporte que dice "orden remota encolada para transporte". Archiva en `.torre/historial/remoto_<fecha>_<slug>/` con `orden_actual.md` (la orden tal cual se emitió). Libera el lock.
+4. **Transporte propiamente dicho** (manual en MVP, automatizable después): el contenido de la orden encolada se publica en `<repo-destino>/.torre/inbox/orden_actual.md`. Para el repo destino aparece como orden **local** (su `REPO_TECNICO` coincide con su repo).
+5. **Operador en repo destino ejecuta** la orden con sus reglas locales. Chequeo dura local pasa naturalmente. Cierra ciclo y archiva en su propio `historial/`.
+6. **Reporte vuelve** a Torre Central como copia (PR cross-repo, fork, fetch o pegado manual). Aterriza en `torre-control/.torre/reportes-remotos/<repo-slug>/reporte_<ID>.md`.
+7. **Torre Central completa** el ciclo remoto: copia el reporte recibido a `historial/remoto_<fecha>_<slug>/reporte_actual.md`, actualiza `estado.md`, cierra.
+
+### Reglas duras de órdenes remotas
+
+1. La Torre Central **no ejecuta** código de los repos destino. Solo emite, encola, transporta, archiva.
+2. Los repos destino **no modifican** la Torre Central. Solo ejecutan lo que llega a su `inbox/`.
+3. Cada repo ejecuta solo sus órdenes locales. La regla dura de identidad sigue intacta y se aplica en cada destino.
+4. Torre Central **solo coordina**. No interpreta el contenido de las órdenes remotas, solo verifica forma.
+5. **Override de Torre deja de ser necesario** para cross-repo: el patrón es `TIPO_ORDEN: remota`, no excepción ad-hoc.
+6. **Transporte explícito**: nunca ejecución remota directa. Siempre cola + repo destino. Limita el blast radius.
+
+## Control de concurrencia
 
 ## Control de concurrencia
 
