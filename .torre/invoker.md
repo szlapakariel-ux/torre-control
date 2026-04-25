@@ -102,7 +102,29 @@ Ambos vuelcan su resultado al `GITHUB_STEP_SUMMARY` del job. El workflow falla s
 
 A partir de V1.1, el step del Invoker tiene dos gates **antes** de invocar el script (sin gates, el Invoker corría en cada cambio dentro de `.torre/**`, lo cual era ruidoso e iba a generar costo descontrolado al conectar IA real):
 
-- **Gate `[skip torre]`**: si el último commit message contiene la marca literal `[skip torre]`, el step se omite. Útil para ciclos de "limpieza" o cambios de doc que no requieren al Invoker. Mensaje en summary: *"Invoker omitido por [skip torre] en el último commit."*
+- **Gate `[skip torre]`** (matcher estricto desde V1.2): si el último commit message contiene la marca `[skip torre]` **sola en una línea propia** (con espacios opcionales antes/después), el step se omite. Útil para ciclos de "limpieza" o cambios de doc que no requieren al Invoker. Mensaje en summary: *"Invoker omitido por [skip torre] en el último commit."*
+
+  **Reglas de matching**:
+  - Patrón regex: `^[[:space:]]*\[skip torre\][[:space:]]*$` aplicado por línea sobre el commit message completo.
+  - **Válidos** (omiten):
+    ```
+    feat: limpieza de doc
+
+    [skip torre]
+    ```
+    ```
+    [skip torre]
+    ```
+    ```
+        [skip torre]   
+    ```
+  - **Inválidos** (NO omiten):
+    - `Agrega soporte [skip torre] al workflow`
+    - `feat: [skip torre] habilitar gating`
+    - `[skip torre] dispatch`
+    - cualquier mención de la string dentro de prosa o como parte de una línea con otro contenido.
+
+  Esta regla apareció en V1.2 tras un caso real (PR #6): el merge commit mencionaba `[skip torre]` describiendo el feature y el matcher laxo de V1.1 lo tomaba como instrucción, generando un falso positivo que pasaba inadvertido porque el placeholder ya estaba en su sitio.
 - **Gate "cambió `inbox/orden_actual.md`"**: si en el commit actual no se modificó `.torre/inbox/orden_actual.md`, el step se omite. Cualquier otro cambio dentro de `.torre/**` (templates, doc, scripts) **no** dispara el Invoker. Mensaje: *"Invoker omitido: `.torre/inbox/orden_actual.md` no cambió en este push."*
 - Si ambas verificaciones pasan, recién ahí se llama a `invoke_operator.sh` y este aplica sus propios filtros internos (placeholder, REQUIERE_IA, EJECUTOR, regla dura).
 

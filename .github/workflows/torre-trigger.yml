@@ -82,10 +82,14 @@ jobs:
           summary "## Trigger V1.1 — Invoker IA"
           summary ""
 
-          # Gate (a): [skip torre] en el último commit message
+          # Gate (a): [skip torre] en el último commit message.
+          # V1.2: matcher estricto. Solo cuenta si la marca está SOLA en su
+          # línea (con espacios opcionales antes/después). Esto evita falsos
+          # positivos cuando un commit message menciona el token en prosa
+          # descriptiva, ej. "Agrega soporte [skip torre] al workflow".
           last_msg=$(git log -1 --pretty=%B)
-          if echo "$last_msg" | grep -qF "[skip torre]"; then
-            echo "[invoker-gate] commit lleva [skip torre]; omitido"
+          if echo "$last_msg" | grep -qE '^[[:space:]]*\[skip torre\][[:space:]]*$'; then
+            echo "[invoker-gate] commit lleva [skip torre] en línea propia; omitido"
             summary "Resultado: **Invoker omitido por [skip torre]** en el último commit."
             exit 0
           fi
