@@ -86,7 +86,7 @@ Para el detalle completo ver `.torre/arquitectura/modelo-mesas-locales.md`.
 | Rol | Quién | Qué hace |
 |---|---|---|
 | Coordinador | Torre | Define qué + para qué. Aprueba cierre cuando severidad lo exige. |
-| Guardián | Torre / agente designado | Vigila ACK, FIN, severidad, mitigación, ruido. |
+| Guardián | Torre / agente designado | Vigila ACK, FIN, severidad, mitigación y ruido cuando esté habilitado en modo sombra o activo (ver `.torre/arquitectura/modelo-mesas-locales.md` §9). |
 | Ejecutor | Claude Code, Codex, Antigravity, Visual Codex, agentes de imagen/video, humano técnico | Toma la tarea, emite ACK, ejecuta dentro del scope, cierra con FIN. |
 | Revisor | Otro ejecutor o humano | Sign-off en `revisiones/`. |
 | Decisor final | Ariel/Torre | Aprueba lo sensible (ver `.torre/arquitectura/decisiones-operativas.md` §2). |

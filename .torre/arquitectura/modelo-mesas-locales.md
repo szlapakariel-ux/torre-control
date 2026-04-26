@@ -110,6 +110,8 @@ PRÓXIMO_PASO:
 - Si no hay ACK, el Guardián considera la tarea no tomada.
 - Si pasa el tiempo estimado sin novedades, el Guardián recomienda escalada (no la decide solo).
 
+> **Nota (V0):** estas reglas describen el comportamiento diseñado del Guardián para cuando esté habilitado en modo sombra o activo. En el estado actual (V0), el Guardián no se considera operativo hasta haber pasado preflight (ver §1.3 y §9). Las reglas se documentan ahora para que el diseño quede registrado antes de la implementación.
+
 ---
 
 ## 4. Severidades
