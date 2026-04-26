@@ -2,12 +2,12 @@
 
 - **PROYECTO_FUNCIONAL**: Torre de Control
 - **REPO_TECNICO**: szlapakariel-ux/torre-control
-- **Última actualización**: 2026-04-25
-- **Última orden cerrada**: ORD-2026-04-25-17 — contrato Claude real con decisiones V1 incorporadas
+- **Última actualización**: 2026-04-26
+- **Última orden cerrada**: ORD-2026-04-26-19 — workflow de feasibility test del Claude CLI (propuesta, no ejecutado)
 - **Operador del último ciclo**: Claude Code (`claude`)
-- **Rama de trabajo del último ciclo**: `torre/claude-real-contrato` (continúa desde ORD-16; PR #12 actualizado)
+- **Rama de trabajo del último ciclo**: `torre/claude-cli-feasibility-test`
 - **Rama destino del último ciclo**: `main`
-- **Archivo del último ciclo**: `.torre/historial/2026-04-25_contrato-claude-decisiones-v1/`
+- **Archivo del último ciclo**: `.torre/historial/2026-04-26_claude-cli-feasibility-test/`
 - **Orden activa**: NO (inbox en placeholder)
 - **EN_PROCESO_POR**: ninguno
 - **ORDENES_REMOTAS_EN_VUELO**: 0
@@ -15,23 +15,24 @@
 
 ## Resumen del estado del sistema
 
-- `.torre/` instalado y documentado: protocolo, sistema, roles, flujo, decisiones, README, templates, estado, trigger, propuesta de Torre Central (aprobada e implementada), invoker (gates V1.1 + matcher V1.2 estricto).
-- **`claude_real_contrato.md`**: contrato con decisiones V1 cerradas + sección "Pendientes V2" (PR #12, draft, sin mergear).
+- `.torre/` instalado y documentado: protocolo, sistema, roles, flujo, decisiones, README, templates, estado, trigger, propuesta de Torre Central (aprobada e implementada), invoker (gates V1.1 + matcher V1.2 estricto), contrato Claude real (Decisiones V1, mergeado en `main`), plan técnico V0 (PR #13 draft).
+- **Nuevo (este ciclo)**: `.github/workflows/claude-cli-feasibility-test.yml` (workflow `workflow_dispatch` only, NO ejecutado) + `.torre/claude_cli_feasibility_test.md` (doc).
+- `main` protegido (PR obligatorio, status check `detect-cycle-closure`, force/delete bloqueados).
 - Stubs Claude/Codex intactos.
-- Historial: diecisiete ciclos cerrados.
+- Workflow principal `torre-trigger-v1` intacto.
+- Historial: diecinueve ciclos cerrados.
 - `inbox/orden_actual.md` y `outbox/reporte_actual.md` en placeholder — no hay orden activa.
-- Backend y frontend sin cambios. Cero dependencias nuevas.
+- Backend y frontend sin cambios. Cero dependencias nuevas (la `npm install` del CLI sucede dentro del workflow ad-hoc, no en el repo).
 
 ## Sugerencias acumuladas para próximas órdenes
 
-1. Revisión final humana del PR #12 con las decisiones V1 incorporadas. Si OK, mergear.
-2. **Antes de la orden de implementación**: activar branch protection en `main` (prerequisito de la decisión 11.8 del contrato).
-3. Orden Torre dedicada para implementar `claude.sh` real, modificar workflow y validar modo no interactivo del CLI.
-4. Primera invocación real con la prueba mínima del contrato (sección 10).
-5. Limpieza de ramas pendiente (bloqueada por permisos del git proxy local; requiere acción desde la UI o `gh` con token).
+1. Revisión humana de PR #13 (plan V0) y del nuevo PR (workflow feasibility-test).
+2. **Si ambos aprobados y mergeados**: configurar `ANTHROPIC_API_KEY` como secret y disparar `claude-cli-feasibility-test` manualmente.
+3. Si el feasibility test pasa: orden Torre de implementación V0 paso 1 (dry-run de prechecks del adaptador).
+4. Pasos 2–5 del plan V0 incremental en órdenes Torre separadas.
+5. Limpieza de ramas pendiente (bloqueada por permisos del git proxy local).
 6. Validador CI de campos obligatorios en `inbox/orden_actual.md`.
 7. Formalizar mecanismo de override Torre.
-8. Re-emitir ORD-2026-04-25-10 como orden remota cuando el Invoker conecte un operador real.
 
 ## Próximo trigger esperado
 
