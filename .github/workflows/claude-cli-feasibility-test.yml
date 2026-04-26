@@ -57,10 +57,11 @@ jobs:
             echo "       Settings -> Secrets and variables -> Actions -> New repository secret."
             exit 2
           fi
-          # Validación que NO imprime la clave: solo longitud y prefijo de 4 chars.
-          # GitHub Actions de todas formas masquea cualquier match con el secret,
-          # pero no dependemos de ese mecanismo.
-          echo "ANTHROPIC_API_KEY presente (longitud=${#ANTHROPIC_API_KEY}, prefijo=${ANTHROPIC_API_KEY:0:4}...)"
+          # Validación que NO revela ningún fragmento del secret: solo informa
+          # presencia. No imprime longitud, no imprime prefijo, no imprime nada
+          # derivado del valor. GitHub Actions enmascara secrets en logs igual,
+          # pero acá la defensa es a nivel del propio script.
+          echo "ANTHROPIC_API_KEY presente: sí"
 
       - name: Invocar Claude — prueba mínima con cap USD 0.10
         env:
