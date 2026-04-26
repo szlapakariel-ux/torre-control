@@ -63,6 +63,41 @@ jobs:
           fi
           exit 0
 
+      - name: Detectar cambios en mesa compartida
+        id: mesa
+        # Corre siempre, incluso si el step anterior reporta ciclo abierto:
+        # los cambios en la mesa son informativos y no dependen del ciclo.
+        # No invoca agentes y no modifica archivos.
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          set +e
+          out=$(bash .torre/scripts/check_mesa_compartida.sh)
+          code=$?
+          set -e
+
+          echo "$out"
+
+          {
+            echo ""
+            echo "## Trigger V1 — Mesa compartida"
+            echo ""
+            echo '```'
+            echo "$out"
+            echo '```'
+            if [[ "$code" -ne 0 ]]; then
+              echo ""
+              echo "Resultado: ERROR ejecutando check_mesa_compartida.sh."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          # Solo fallar si hubo error real del script (>=2). Sin cambios o
+          # con cambios son ambos estados válidos del informe.
+          if [[ "$code" -ge 2 ]]; then
+            exit "$code"
+          fi
+          exit 0
+
       - name: Intentar invocar operador IA si la orden lo pide (Invoker V1.1)
         # Corre incluso si el step anterior reportó "ciclo abierto":
         # ese es justamente el escenario donde puede haber orden activa.
