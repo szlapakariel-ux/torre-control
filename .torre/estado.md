@@ -3,11 +3,11 @@
 - **PROYECTO_FUNCIONAL**: Torre de Control
 - **REPO_TECNICO**: szlapakariel-ux/torre-control
 - **Última actualización**: 2026-04-26
-- **Última orden cerrada**: ORD-2026-04-26-20 — plan V0 actualizado tras feasibility test aprobado
+- **Última orden cerrada**: ORD-2026-04-26-21 — dry-run de prechecks del adaptador real (paso 1 plan V0)
 - **Operador del último ciclo**: Claude Code (`claude`)
-- **Rama de trabajo del último ciclo**: `torre/claude-real-v0-plan` (PR #13, mergeado con main)
+- **Rama de trabajo del último ciclo**: `torre/claude-adaptor-prechecks`
 - **Rama destino del último ciclo**: `main`
-- **Archivo del último ciclo**: `.torre/historial/2026-04-26_plan-v0-post-feasibility/`
+- **Archivo del último ciclo**: `.torre/historial/2026-04-26_claude-adaptor-prechecks/`
 - **Orden activa**: NO (inbox en placeholder)
 - **EN_PROCESO_POR**: ninguno
 - **ORDENES_REMOTAS_EN_VUELO**: 0
@@ -15,25 +15,24 @@
 
 ## Resumen del estado del sistema
 
-- `.torre/` instalado y documentado: protocolo, sistema, roles, flujo, decisiones, README, templates, estado, trigger, propuesta de Torre Central (aprobada e implementada), invoker (gates V1.1 + matcher V1.2 estricto), contrato Claude real (Decisiones V1, mergeado), workflow `claude-cli-feasibility-test` (mergeado).
-- **Plan V0 actualizado** (PR #13, draft): comando del CLI confirmado, sección 14 reorganizada en bloqueantes resueltos / diferibles / pendiente a probar.
-- **Feasibility test del CLI**: APROBADO por Torre. Los 4 bloqueantes principales del plan V0 quedaron resueltos.
+- `.torre/` instalado y documentado: protocolo, sistema, roles, flujo, decisiones, README, templates, estado, trigger, propuesta de Torre Central (aprobada e implementada), invoker (gates V1.1 + matcher V1.2 estricto), contrato Claude real (mergeado), plan V0 (mergeado), workflow del feasibility test (mergeado).
+- **Nuevo (este ciclo)**: `.github/workflows/claude-adaptor-prechecks.yml` (paso 1 del plan V0 incremental, dry-run, NO ejecutado) + `.torre/claude_adaptor_prechecks.md`.
 - `main` protegido (PR obligatorio, status check `detect-cycle-closure`, force/delete bloqueados).
 - Stubs Claude/Codex intactos.
 - Workflow principal `torre-trigger-v1` intacto.
-- Historial: veinte ciclos cerrados.
+- Workflow `claude-cli-feasibility-test`: APROBADO en feasibility manual de Torre.
+- Historial: veintiún ciclos cerrados.
 - `inbox/orden_actual.md` y `outbox/reporte_actual.md` en placeholder — no hay orden activa.
 - Backend y frontend sin cambios. Cero dependencias nuevas.
 
 ## Sugerencias acumuladas para próximas órdenes
 
-1. Verificar CI verde sobre PR #13 → marcar Ready for Review.
-2. Revisión humana del plan V0 actualizado → si OK, mergear PR #13.
-3. Orden Torre de implementación V0 paso 1 (dry-run de prechecks del adaptador real).
-4. Pasos 2–5 del plan incremental en órdenes Torre separadas.
-5. Limpieza de ramas pendiente (bloqueada por permisos del git proxy local).
+1. Revisar PR del paso 1 (este ciclo) → mergear.
+2. Disparar manualmente `claude-adaptor-prechecks` → leer veredicto `LISTO: sí/no`.
+3. Si verde: orden Torre del paso 2 del plan V0 incremental (invocación real con prompt inocuo).
+4. Pasos 3, 4, 5 del plan V0 incremental en órdenes Torre separadas.
+5. Limpieza de ramas pendiente.
 6. Validador CI de campos obligatorios en `inbox/orden_actual.md`.
-7. Formalizar mecanismo de override Torre.
 
 ## Próximo trigger esperado
 

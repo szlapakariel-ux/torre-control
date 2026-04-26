@@ -1,0 +1,201 @@
+name: claude-adaptor-prechecks
+
+# Dry-run de los prechecks del adaptador real V0 (paso 1 del plan
+# incremental, sección 15 de .torre/claude_real_v0_plan.md).
+#
+# QUÉ HACE: verifica las 10 precondiciones que tendría que cumplir el
+# adaptador real antes de invocar a Claude. Reporta "LISTO PARA INVOCACIÓN
+# REAL: sí" o "no" en el step summary.
+#
+# QUÉ NO HACE:
+#   - NO invoca a la API de Claude.
+#   - NO modifica archivos del repo.
+#   - NO abre ni mergea PRs.
+#   - NO ejecuta claude.sh como adaptador real (sigue stub).
+#   - NO consume tokens / costo.
+#   - NO usa el Invoker.
+#
+# Disparo solo manual (workflow_dispatch). Permisos mínimos: solo lectura.
+# Versión del CLI pineada: 2.1.119.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  prechecks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Ejecutar los 10 prechecks
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          set -uo pipefail
+          # set -e DESACTIVADO a propósito: queremos correr los 10 chequeos
+          # aunque alguno falle, y reportar el conjunto al final.
+
+          declare -a results=()
+          add() { results+=("$1"); }
+
+          fail_count=0
+          warn_count=0
+
+          mark_ok()   { add "✅ $1"; }
+          mark_fail() { add "❌ $1"; fail_count=$((fail_count + 1)); }
+          mark_warn() { add "⚠️  $1"; warn_count=$((warn_count + 1)); }
+          mark_na()   { add "➖ $1"; }
+
+          ## 1. main protegido
+          prot=$(gh api "/repos/${GITHUB_REPOSITORY}/branches/main/protection" 2>&1 || true)
+          if echo "$prot" | grep -q '"required_status_checks"'; then
+            mark_ok "1. main protegido (required_status_checks presente)"
+          elif echo "$prot" | grep -qi "Branch not protected"; then
+            mark_fail "1. main NO protegido"
+          else
+            mark_warn "1. main protegido pero sin status checks requeridos en la respuesta API"
+          fi
+
+          ## 2. ANTHROPIC_API_KEY presente
+          if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
+            mark_fail "2. ANTHROPIC_API_KEY NO configurado"
+          else
+            mark_ok "2. ANTHROPIC_API_KEY presente"
+          fi
+
+          ## 3. Claude CLI instalable
+          if npm install -g "@anthropic-ai/claude-code@2.1.119" >/tmp/npm.log 2>&1; then
+            mark_ok "3. Claude CLI instalable (@anthropic-ai/claude-code@2.1.119)"
+          else
+            mark_fail "3. Claude CLI NO instalable. Ver /tmp/npm.log"
+            tail -20 /tmp/npm.log
+          fi
+
+          ## 4. claude --version
+          if command -v claude >/dev/null 2>&1; then
+            ver=$(claude --version 2>&1 | head -1 || true)
+            if echo "$ver" | grep -q "2.1.119"; then
+              mark_ok "4. claude --version: $ver (versión pineada)"
+            else
+              mark_warn "4. claude --version: $ver (distinta a 2.1.119)"
+            fi
+          else
+            mark_fail "4. claude no está en el PATH tras la instalación"
+          fi
+
+          ## 5. gh disponible
+          if command -v gh >/dev/null 2>&1; then
+            ghver=$(gh --version 2>&1 | head -1 || true)
+            mark_ok "5. gh disponible: $ghver"
+          else
+            mark_fail "5. gh NO disponible"
+          fi
+
+          ## 6. Permisos GitHub mínimos (lectura)
+          if gh api "/repos/${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            mark_ok "6. permisos GitHub: lectura del repo OK (write se valida cuando el adaptador real lo intente)"
+          else
+            mark_fail "6. permisos GitHub: NO se puede leer el repo con GITHUB_TOKEN"
+          fi
+
+          ## 7. Workflow principal intacto y parseable
+          if [ ! -f .github/workflows/torre-trigger.yml ]; then
+            mark_fail "7. Workflow principal torre-trigger.yml NO existe"
+          elif ! python3 -c "import yaml; yaml.safe_load(open('.github/workflows/torre-trigger.yml'))" 2>/dev/null; then
+            mark_fail "7. Workflow principal torre-trigger.yml NO es YAML parseable"
+          else
+            mark_ok "7. Workflow principal torre-trigger.yml presente y parseable"
+          fi
+
+          ## 8. Stubs presentes
+          stub_ok=true
+          for f in .torre/scripts/operators/claude.sh .torre/scripts/operators/codex.sh; do
+            if [ ! -f "$f" ]; then
+              mark_fail "8. Stub $f NO existe"
+              stub_ok=false
+            elif [ ! -x "$f" ]; then
+              mark_warn "8. Stub $f no es ejecutable"
+            elif ! grep -q "STUB" "$f"; then
+              mark_warn "8. Stub $f no marca 'STUB' explícitamente"
+            fi
+          done
+          if [ "$stub_ok" = true ]; then
+            mark_ok "8. Stubs claude.sh y codex.sh presentes"
+          fi
+
+          ## 9. Lock libre
+          en_proceso=$(grep -E '^[[:space:]]*-?[[:space:]]*\*?\*?EN_PROCESO_POR\*?\*?[[:space:]]*:' .torre/estado.md \
+                        | head -1 \
+                        | sed -E 's/.*:[[:space:]]*//' \
+                        | tr -d '`' \
+                        | tr -d '[:space:]')
+          if [ "$en_proceso" = "ninguno" ]; then
+            mark_ok "9. Lock libre (EN_PROCESO_POR: ninguno)"
+          else
+            mark_fail "9. Lock OCUPADO por '$en_proceso'"
+          fi
+
+          ## 10. Scope válido
+          if grep -q "sin orden activa" .torre/inbox/orden_actual.md; then
+            mark_na "10. Scope: N/A (inbox en placeholder; se valida al recibir orden real)"
+          else
+            if grep -qE '^[[:space:]]*-?[[:space:]]*\*?\*?SCOPE_PERMITIDO\*?\*?[[:space:]]*:' .torre/inbox/orden_actual.md; then
+              scope=$(grep -E '^[[:space:]]*-?[[:space:]]*\*?\*?SCOPE_PERMITIDO\*?\*?[[:space:]]*:' .torre/inbox/orden_actual.md | head -1)
+              mark_ok "10. Scope declarado en la orden: $scope"
+            else
+              mark_ok "10. Scope no declarado, default .torre/** aplica"
+            fi
+          fi
+
+          ## Veredicto
+          if [ "$fail_count" -eq 0 ]; then
+            verdict="**LISTO PARA INVOCACIÓN REAL: sí**"
+            verdict_short="LISTO: sí"
+          else
+            verdict="**LISTO PARA INVOCACIÓN REAL: no** (${fail_count} chequeo(s) fallaron)"
+            verdict_short="LISTO: no"
+          fi
+
+          ## Volcado al stdout (visible en log) y al step summary
+          {
+            echo "## Dry-run de prechecks del adaptador real V0"
+            echo ""
+            echo "$verdict"
+            echo ""
+            echo "Resumen: ${#results[@]} chequeos, ${fail_count} fallas, ${warn_count} warnings."
+            echo ""
+            echo "### Resultados"
+            for r in "${results[@]}"; do
+              echo "- $r"
+            done
+            echo ""
+            echo "### Lo que NO hizo este workflow"
+            echo "- NO invocó la API de Claude."
+            echo "- NO modificó archivos del repo."
+            echo "- NO abrió ni mergeó PRs."
+            echo "- NO ejecutó claude.sh como adaptador real."
+            echo "- NO consumió tokens / costo."
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+
+          # Sanity adicional: el workflow no debe haber modificado archivos.
+          if [ -n "$(git status --porcelain)" ]; then
+            echo ""
+            echo "ERROR: el workflow modificó archivos del working tree (no debería)."
+            git status --short
+            exit 99
+          fi
+
+          # Exit code: 0 si todos los prechecks pasan, 1 si hay fallas.
+          # Warnings no fallan el workflow.
+          if [ "$fail_count" -gt 0 ]; then
+            exit 1
+          fi
+          exit 0
