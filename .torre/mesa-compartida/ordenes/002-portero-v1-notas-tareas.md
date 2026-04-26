@@ -5,7 +5,7 @@ REPO_TECNICO: szlapakariel-ux/agente-saas
 
 ID: 002-portero-v1-notas-tareas
 FECHA: 2026-04-26
-ESTADO: ABIERTA
+ESTADO: ABIERTA — ASIGNADA — BLOQUEADA POR 001
 
 PROBLEMA_DE_ARIEL:
 Después de resolver el tema de horarios / recordatorios, hay que terminar Portero V1 para notas y tareas. Esto ya está muy hablado: no dejarlo abierto indefinidamente, avanzar hasta cerrarlo.
@@ -36,7 +36,24 @@ Debe mantener la coherencia con el comportamiento ya completo de:
 2. Cumpleaños.
 
 RESPONSABLE_ACTUAL:
-Agente técnico sobre repo `szlapakariel-ux/agente-saas`.
+Claude Code como ejecutor técnico principal sobre szlapakariel-ux/agente-saas.
+
+Codex como colaborador técnico/revisor si hace falta segunda mirada o implementación alternativa.
+
+AVISO_EXPLICITO_AL_RESPONSABLE:
+
+Esta orden queda formalmente asignada. No es una nota suelta ni una idea pendiente.
+
+Cuando la dependencia 001-recordatorios-fuera-de-horario quede cerrada o suficientemente diagnosticada, Claude Code debe tomar esta orden, revisar el repo técnico szlapakariel-ux/agente-saas y entregar diagnóstico/propuesta.
+
+Si Claude Code no puede avanzar o detecta ambigüedad, debe reportar bloqueo explícito en la mesa compartida o en el PR correspondiente.
+
+Codex puede intervenir como segundo agente técnico para revisar, contrastar o implementar una solución, pero no reemplaza la revisión de Torre/Ariel.
+
+Nadie debe tratar esta orden como "no avisada". La asignación queda registrada en Torre.
+
+BLOQUEADA_POR:
+001-recordatorios-fuera-de-horario
 
 DEPENDENCIA:
 Antes de ejecutar esta orden, cerrar o dejar diagnosticado el problema `001-recordatorios-fuera-de-horario`.
@@ -80,8 +97,10 @@ REVISION_DE_CHATGPT:
 Pendiente.
 
 PROXIMO_RESPONSABLE:
-Primero: Torre / ChatGPT debe terminar la revisión de recordatorios fuera de horario.
-Después: agente técnico debe diagnosticar Portero V1 en `szlapakariel-ux/agente-saas`.
+Primero: Claude Code debe diagnosticar 001-recordatorios-fuera-de-horario.
+Después: Claude Code debe diagnosticar Portero V1 en szlapakariel-ux/agente-saas.
+
+Codex queda disponible como colaborador técnico si Torre lo deriva.
 
 ESTADO_FINAL:
 Pendiente.
