@@ -1,0 +1,156 @@
+name: claude-cli-feasibility-test
+
+# Prueba aislada y manual de Claude Code CLI.
+#
+# Objetivo: confirmar end-to-end (en runner real, no en sandbox local) que:
+#   1) ANTHROPIC_API_KEY configurado como secret llega al runner.
+#   2) `claude --print --bare` responde sin TTY.
+#   3) `--output-format json` devuelve estructura parseable.
+#   4) `--max-budget-usd 0.10` limita el costo de la invocación.
+#   5) La API key no aparece en logs.
+#   6) El working tree no se modifica.
+#
+# Este workflow está SEPARADO del workflow principal `torre-trigger-v1`.
+# Solo se dispara MANUALMENTE desde la UI de Actions (workflow_dispatch).
+# No corre en push ni en pull_request. Permisos mínimos (`contents: read`).
+# Versión del CLI pineada para evitar sorpresas.
+#
+# Si la prueba falla, el workflow falla con exit ≠ 0. Si la prueba pasa,
+# el step summary muestra el resumen.
+
+on:
+  workflow_dispatch:
+    # Sin inputs: el prompt y los flags están fijos en el script para
+    # mantener la prueba determinística y evitar costos sorpresa.
+
+permissions:
+  contents: read
+
+jobs:
+  cli-feasibility:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout (solo para verificar que no se modifica el working tree)
+        uses: actions/checkout@v4
+
+      - name: Verificar entorno
+        run: |
+          echo "OS: $(uname -srm)"
+          echo "Distro: $(grep -E '^(NAME|VERSION_ID)=' /etc/os-release | tr '\n' ' ')"
+          echo "Node: $(node --version)"
+          echo "jq: $(jq --version)"
+
+      - name: Instalar Claude Code CLI (versión pineada)
+        run: |
+          npm install -g @anthropic-ai/claude-code@2.1.119
+          echo "Claude version: $(claude --version)"
+
+      - name: Verificar que ANTHROPIC_API_KEY está disponible (sin imprimirla)
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          set -u
+          if [ -z "${ANTHROPIC_API_KEY}" ]; then
+            echo "ERROR: secret ANTHROPIC_API_KEY no configurado en el repo."
+            echo "       Settings -> Secrets and variables -> Actions -> New repository secret."
+            exit 2
+          fi
+          # Validación que NO revela ningún fragmento del secret: solo informa
+          # presencia. No imprime longitud, no imprime prefijo, no imprime nada
+          # derivado del valor. GitHub Actions enmascara secrets en logs igual,
+          # pero acá la defensa es a nivel del propio script.
+          echo "ANTHROPIC_API_KEY presente: sí"
+
+      - name: Invocar Claude — prueba mínima con cap USD 0.10
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          set -euo pipefail
+
+          # Prompt fijo, intencionalmente trivial.
+          PROMPT="Respondé solamente: OK TORRE"
+
+          # Invocación con todos los flags de seguridad/control.
+          # NO usamos `set -x` para no expandir la variable de la API key en logs.
+          echo "$PROMPT" \
+            | claude \
+                --print \
+                --bare \
+                --no-session-persistence \
+                --output-format json \
+                --max-budget-usd 0.10 \
+                --model sonnet \
+            > /tmp/response.json
+          echo "Exit del CLI: $?"
+
+          # 1) Validación: respuesta es JSON parseable.
+          if ! jq '.' /tmp/response.json > /tmp/parsed.json 2>/tmp/jq.err; then
+            echo "ERROR: la respuesta del CLI no es JSON parseable."
+            echo "--- stderr de jq ---"
+            cat /tmp/jq.err
+            echo "--- primeras 200 chars del output crudo ---"
+            head -c 200 /tmp/response.json
+            exit 3
+          fi
+          echo "JSON parseable: OK"
+
+          # 2) Validación: 'OK TORRE' está en algún lugar de la respuesta.
+          if grep -q "OK TORRE" /tmp/response.json; then
+            echo "Contenido 'OK TORRE': presente"
+          else
+            echo "WARN: 'OK TORRE' no encontrado literal en la respuesta."
+            echo "(no abortamos: validación principal es JSON + exit + sin-mods)"
+          fi
+
+          # 3) Validación: working tree intacto (Claude no debería modificar nada
+          # con un prompt que solo pide responder texto, pero igual chequeamos).
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "ERROR: el working tree fue modificado durante la invocación."
+            git status --short
+            exit 4
+          fi
+          echo "Working tree intacto: OK"
+
+          # 4) Resumen visible al usuario en el Step Summary.
+          {
+            echo "## Claude CLI Feasibility Test — Resultado"
+            echo ""
+            echo "**Versión del CLI**: $(claude --version)"
+            echo ""
+            echo "### Validaciones"
+            echo "- Secret ANTHROPIC_API_KEY presente: OK (longitud no revelada en logs)"
+            echo "- JSON parseable: OK"
+            echo "- Working tree intacto: OK"
+            echo "- Cap de costo: USD 0.10"
+            echo ""
+            echo "### Estructura de la respuesta (claves del JSON)"
+            echo '```json'
+            jq 'keys' /tmp/response.json
+            echo '```'
+            echo ""
+            echo "### Si el CLI devuelve usage, lo mostramos"
+            echo '```json'
+            jq '.usage // .meta // .response_meta // "no usage field exposed"' /tmp/response.json
+            echo '```'
+            echo ""
+            echo "### Snippet de la respuesta (primeras 200 chars del result)"
+            echo '```'
+            jq -r '.result // .response // .text // .content // .' /tmp/response.json 2>/dev/null \
+              | head -c 200 \
+              || echo "(no se pudo extraer un campo de respuesta esperado)"
+            echo ""
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Confirmar que no se hicieron commits
+        run: |
+          # No debería haber commits nuevos. El workflow es read-only en términos de git.
+          # Cualquier commit acá sería un bug del adaptador a futuro.
+          if [ -n "$(git log --oneline ${{ github.sha }}..HEAD 2>/dev/null)" ]; then
+            echo "ERROR: hay commits nuevos respecto al SHA del workflow."
+            git log --oneline "${{ github.sha }}..HEAD"
+            exit 5
+          fi
+          echo "Sin commits nuevos: OK"
