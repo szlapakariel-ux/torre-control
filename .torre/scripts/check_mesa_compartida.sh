@@ -54,7 +54,11 @@ while IFS= read -r f; do
   # Archivo borrado en este commit: no se puede grepear contenido actual.
   [[ ! -f "$f" ]] && continue
 
-  if grep -q '\[FIN_AGENTE\]' "$f" 2>/dev/null; then
+  # Matcher estricto: [FIN_AGENTE] solo cuenta si está SOLA en su línea (con
+  # espacios opcionales). Evita falsos positivos cuando el token aparece en
+  # prosa descriptiva u órdenes que documentan el contrato. Mismo patrón que
+  # la gate (a) V1.2 del Invoker para [skip torre].
+  if grep -qE '^[[:space:]]*\[FIN_AGENTE\][[:space:]]*$' "$f" 2>/dev/null; then
     fin_agente="sí"
   fi
   if grep -qE '(BLOQUEO|BLOQUEADA)' "$f" 2>/dev/null; then
