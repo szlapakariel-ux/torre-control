@@ -1,6 +1,6 @@
 # Claude Real V0 — Plan técnico de implementación
 
-> **Estado**: PROPUESTA. Documento de diseño técnico, **no implementación**. Producido por ORD-2026-04-26-18 partiendo del contrato `claude_real_contrato.md` ya mergeado en `main`. `.torre/scripts/operators/claude.sh` sigue siendo stub. Este plan describe cómo se haría el cambio, sin hacerlo.
+> **Estado**: PLAN VIABLE — feasibility validado. Producido por ORD-2026-04-26-18, actualizado por ORD-2026-04-26-20 con el resultado del feasibility test del CLI (ORD-2026-04-26-19) aprobado por Torre. Los 4 bloqueantes principales (sección 14) quedaron resueltos. `.torre/scripts/operators/claude.sh` sigue siendo stub: este plan describe cómo se haría el cambio, sin hacerlo.
 
 ## 1. Objetivo
 
@@ -57,32 +57,42 @@ Punto crítico: el adaptador real **abre PR pero no mergea**. La autoridad para 
 
 ## 3. Cómo se invocaría Claude
 
-**V0 elegida** (decisión 11.1 del contrato): usar **Claude Code CLI** (`@anthropic-ai/claude-code`) si soporta modo no interactivo / headless invocable desde un step de GitHub Actions, sin TTY ni input humano.
+**V0 elegida** (decisión 11.1 del contrato): usar **Claude Code CLI** (`@anthropic-ai/claude-code`), **modo no interactivo confirmado** por el feasibility test (ORD-2026-04-26-19, APROBADO por Torre).
 
-### Forma tentativa
+### Comando confirmado
 
 ```sh
-# Pseudocomando — el flag exacto debe verificarse contra la versión vigente del CLI
-claude code --print --no-interactive < prompt.txt > response.json
+echo "$PROMPT" \
+  | claude \
+      --print \
+      --bare \
+      --no-session-persistence \
+      --output-format json \
+      --max-budget-usd 0.10 \
+      --model sonnet \
+  > /tmp/response.json
 ```
 
-`--print` (o equivalente: `-p`, `--non-interactive`, `--headless`, según versión) debe:
-- Aceptar el prompt por stdin o por archivo.
-- Devolver la respuesta y/o aplicar los cambios al working tree.
-- No abrir ningún REPL, no requerir confirmaciones interactivas.
-- Salir con un exit code claro (0 = ok, ≠0 = error).
+Cada flag tiene un rol explícito:
 
-### Condición de freno (decisión 11.1 del contrato)
+- **`-p` / `--print`**: modo no interactivo. Acepta prompt por stdin, escribe respuesta a stdout, sale sin REPL. Confirmado por el feasibility.
+- **`--bare`**: minimal mode. Auth estricta vía `ANTHROPIC_API_KEY` (no OAuth, no keychain). Sin hooks, LSP, plugins, auto-memory, CLAUDE.md auto-discovery. Entorno limpio y predecible para CI.
+- **`--no-session-persistence`**: no guarda sesión en disco. Apropiado para runner efímero.
+- **`--output-format json`**: respuesta parseable. Permite extraer campos de auditoría (sección 9).
+- **`--max-budget-usd 0.10`**: cap de costo nativo del CLI. Cualquier overrun aborta la invocación.
+- **`--model sonnet`**: modelo default V0 según contrato (decisión 11.5). Opus prohibido salvo autorización explícita en la orden.
 
-Si la versión vigente del CLI **no soporta modo no interactivo confiable**, el ciclo de implementación **se detiene**:
-- No se hace fallback inmediato a API directa.
-- Se reporta el hallazgo (qué versión se probó, qué flag se intentó, qué falló).
-- Se reabre la decisión en una orden Torre dedicada (esperar madurez del CLI vs. esfuerzo extra de API directa).
+Auth: `ANTHROPIC_API_KEY` se expone al step del adaptador con `env:` del workflow YAML; `--bare` la consume sin login interactivo. Confirmado por el feasibility.
+
+### Versión del CLI pineada
+
+La versión validada por el feasibility test: **`@anthropic-ai/claude-code@2.1.119`**. El workflow del adaptador real debe pinear exactamente esa versión hasta que se decida subirla en una orden Torre dedicada.
 
 ### Lo que NO se hace en V0
 
-- API directa con `anthropic` SDK + bash que arme prompts y aplique patches manualmente. Camino alternativo, fuera de scope V0.
-- Inventar comandos definitivos sin verificación: el comando exacto **debe validarse antes de implementar** (paso 1 de la "Recomendación de implementación", sección 15).
+- API directa con `anthropic` SDK + bash que arme prompts y aplique patches manualmente. Camino alternativo descartado: el CLI demostró ser viable.
+- Cambiar versión del CLI sin orden Torre.
+- Habilitar Opus por default.
 
 ## 4. Manejo de lock
 
@@ -531,20 +541,48 @@ Escalar gradualmente: scope a más archivos, órdenes más complejas, eventualme
 
 **No escalar.** Debugear con la falla en mano: leer reporte, ver dónde cortó, ajustar el adaptador o el prompt o el contrato. Cada falla en V0 es información para hacer el sistema más robusto antes de pasar a producción.
 
-## 14. Datos que faltan antes de implementar
+## 14. Datos pendientes antes de implementar
 
-Decisiones/datos que **deben verificarse o conseguirse** antes de escribir el código real del adaptador:
+Reorganizado tras el feasibility test del CLI (ORD-2026-04-26-19, APROBADO por Torre):
 
-1. **Comando real de Claude Code CLI en modo no interactivo**: el flag exacto (`--print`, `-p`, `--non-interactive`, `--headless`, etc.) y su comportamiento (acepta stdin, escribe a stdout, exit codes claros). Verificable instalando el CLI en un sandbox y probando.
-2. **Cómo se autentica Claude Code en el runner**: ¿lee `ANTHROPIC_API_KEY` del env automáticamente?, ¿requiere `claude login`?, ¿hay otro mecanismo? El método debe permitir auth no-interactiva.
-3. **GitHub Actions o runner local para V0**: el contrato decidió Actions. Confirmar que la versión vigente del CLI funciona en `ubuntu-latest` con `Node.js 20+`.
-4. **Cómo se abrirá el PR**: si el CLI lo hace solo o se usa `gh`. Si `gh`: confirmar versión y que `GITHUB_TOKEN` provisto por Actions tiene `pull-requests: write`.
-5. **Nombre exacto del status check requerido**: ya confirmado por Torre como `detect-cycle-closure`. Si en algún momento se renombra, hay que actualizar branch protection y el contrato.
-6. **Verificación de branch protection por API**: si el adaptador puede consultar `GET /repos/{owner}/{repo}/branches/main/protection` con `GITHUB_TOKEN`, validable como precheck.
-7. **Cómo se mide costo real**: la API del CLI / SDK ¿devuelve usage por llamada? ¿se factura por separado? Necesario para auditoría § 9.
-8. **Cómo se obtiene uso de tokens**: idem #7. Si la API no lo expone fácil, V0 puede dejar costo "no disponible" en el reporte.
-9. **Cómo se testea sin gastar mucho**: ¿hay sandbox, modo dry-run, mock? Si no, las pruebas iniciales generan llamadas API reales (mínimas: prompt corto, max_tokens chico).
-10. **Política de versionado del CLI**: ¿se pinea una versión exacta en el workflow o se usa `latest`? Pinear evita sorpresas; `latest` puede traer cambios silenciosos.
+### 14.1 — Bloqueantes resueltos
+
+Los 4 ítems que originalmente bloqueaban V0 quedaron **resueltos** por el feasibility test:
+
+1. **Comando real de Claude Code CLI en modo no interactivo** ✅
+   - **Confirmado**: `-p` / `--print`. Acepta prompt por stdin, escribe a stdout, sale con exit code claro, sin REPL.
+   - Documentado en `claude --help` como caso de uso de pipes.
+   - Versión validada: `@anthropic-ai/claude-code@2.1.119`.
+2. **Cómo se autentica Claude Code en el runner** ✅
+   - **Confirmado**: `ANTHROPIC_API_KEY` en el env, sin login interactivo.
+   - Flag `--bare` lo refuerza explícitamente: "Anthropic auth is strictly `ANTHROPIC_API_KEY` or `apiKeyHelper`".
+   - GitHub Actions secret + `env:` del step → CLI consume sin prompts.
+3. **GitHub Actions runner `ubuntu-latest` Node 20+** ✅
+   - **Confirmado**: el feasibility test corre exactamente en `ubuntu-latest` con Node 20+ (default actual).
+   - El CLI se instala con `npm install -g @anthropic-ai/claude-code@2.1.119` sin problemas.
+4. **Mecanismo para abrir PR** ✅ (parcial — ver 14.3)
+   - **Confirmado**: `gh` CLI viene **preinstalado** en `ubuntu-latest`.
+   - `GITHUB_TOKEN` provisto automáticamente por Actions con `permissions: pull-requests: write` declarado en el workflow.
+   - **Falta probar end-to-end** dentro del adaptador real (ver 14.3).
+
+### 14.2 — Pendientes diferibles (no bloquean V0)
+
+Pueden resolverse con defaults conservadores en V0 y refinarse después:
+
+5. **Nombre exacto del status check requerido**: ya confirmado por Torre como `detect-cycle-closure`. Si se renombra, hay que actualizar branch protection y el contrato.
+6. **Verificación de branch protection por API**: el adaptador puede asumirla activa (responsabilidad del operador humano que activa la protección). Precheck por API es nice-to-have, no bloqueante.
+7. **Cómo se mide costo real**: el CLI con `--output-format json` devuelve campos relacionados con usage. Validable inspeccionando la respuesta JSON del feasibility test cuando se ejecute. Si no se expone, V0 deja "no disponible" en el reporte.
+8. **Cómo se obtiene uso de tokens**: idem #7. El JSON del CLI debería traerlo; si no, se difiere.
+9. **Cómo se testear sin gastar mucho**: cubierto por `--max-budget-usd 0.10` y los pasos incrementales del plan (paso 1 dry-run sin invocar Claude, paso 2 invocación inocua).
+10. **Política de versionado del CLI**: V0 **pinea `2.1.119`** (la versión validada por feasibility). Cualquier upgrade pasa por orden Torre dedicada.
+
+### 14.3 — Pendiente a probar dentro del adaptador real
+
+Único ítem que el feasibility test **no cubrió** y que falta validar end-to-end al implementar el adaptador:
+
+- **`gh pr create` desde el adaptador**: el feasibility test confirmó que `gh` está en el runner y que `GITHUB_TOKEN` se provee. Falta probar la apertura efectiva de un PR cross-branch desde dentro de `claude.sh` real, con `permissions: pull-requests: write` en el workflow del adaptador. Esto se valida en el **paso 4** del plan incremental (sección 15): "Apertura de PR confirmada".
+
+Si por algún motivo la apertura del PR falla (token sin scope, branch protection que bloquea, conflicto), el adaptador debe reportar y detenerse según los criterios de corte de la sección 12.
 
 ## 15. Recomendación de implementación
 
