@@ -46,13 +46,19 @@ Si se elige cualquier consumidor automatizado, debe diseñarse documentalmente a
 ### 5. Lista cerrada de archivos técnicos autorizados
 Pendiente. MC-LOC-2 no puede abrirse sin esta lista. La lista debe enumerar paths exactos (no globs amplios) que el microciclo técnico puede crear o modificar.
 
-Ejemplo de formato esperado:
+Ejemplo de formato esperado (paths **ilustrativos**, no aprobados):
 ```
 - .torre/tracking/AAAA-MM.jsonl                 (datos operativos del mes en curso)
 - .torre/tracking/historial/AAAA-MM.jsonl       (archivo histórico)
 - .torre/tracking/demo/<fixture>.jsonl          (datos de prueba)
 - .torre/scripts/tracking/<script>              (si aplica, requiere autorización separada)
 ```
+
+> **Aclaración vinculante.** Estos paths son ejemplos conceptuales de **decisión pendiente**. No son archivos autorizados para implementación, no habilitan scripts y no habilitan MC-LOC-2 técnico. Su sola mención aquí no constituye permiso para crearlos, modificarlos ni referenciarlos desde código.
+>
+> Cualquier path técnico futuro debe aprobarse en una **lista cerrada** firmada por Torre/Ariel en un **microciclo separado** (orden por escrito), con paths exactos y sin comodines amplios.
+>
+> En particular, **`.torre/scripts/` no queda autorizado por este documento** ni por MC-LOC-2B. Tocar esa zona requiere autorización doble (Torre + Ariel) y revisión específica de hooks/CI, en un microciclo dedicado.
 
 La inclusión de scripts requiere autorización doble, ya que toca la zona `.torre/scripts/`.
 

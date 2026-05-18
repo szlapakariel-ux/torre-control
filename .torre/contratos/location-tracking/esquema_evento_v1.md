@@ -13,7 +13,7 @@ Este documento define **conceptualmente** el evento operativo de location tracki
 | `schema_version` | integer | SÍ | `1` | entero positivo, igual al de esta versión del contrato | cualquier valor distinto de `1` mientras esta sea la v1 |
 | `project` | string | SÍ | `"torre-control"` | slug ASCII, `[a-z0-9-]`, 1–64 caracteres | nombres de personas, emails, organizaciones reales |
 | `repo` | string | SÍ | `"szlapakariel-ux/torre-control"` | formato `owner/repo`, ambos slugs ASCII | URLs completas, paths locales, credenciales |
-| `branch` | string | SÍ | `"claude/mc-loc-2-...""` | nombre git válido, 1–200 caracteres | tokens, secrets, datos sensibles incrustados |
+| `branch` | string | SÍ | `"claude/mc-loc-2-ejemplo"` | nombre git válido, 1–200 caracteres | tokens, secrets, datos sensibles incrustados |
 | `microcycle` | string | SÍ | `"MC-LOC-2B"` | patrón `MC-[A-Z0-9-]+` | descripciones libres, frases con PII |
 | `agent` | string | SÍ | `"claude-code"` | enum abierto controlado: `claude-code`, `codex`, `portero`, `humano:<alias>` | nombres reales, emails, IDs de cuenta externos |
 | `state` | string | SÍ | `"diagnostico"` | uno de los valores del enum cerrado (ver abajo) | cualquier valor fuera del enum |
