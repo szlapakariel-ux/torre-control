@@ -54,9 +54,21 @@ Documentos auxiliares revisados:
 | 17 | Sin secrets | **CUMPLIDA CON LÍMITES** | `criterios_habilitacion_tecnica.md`, `decision_mc_loc_2c.md §2.9`, `decision_almacenamiento_emisor_mc_loc_2i.md §2.1/§3.1/§3.2` | NO |
 | 18 | Sin tracking real | **CUMPLIDA** | `alcance.md`, `privacidad.md`, `decision_mc_loc_2c.md §2.9`, `decision_almacenamiento_emisor_mc_loc_2i.md §2.2` (exclusión absoluta) | NO |
 | 19 | Sin ubicación real | **CUMPLIDA** | `privacidad.md` (regla vinculante), `decision_mc_loc_2c.md §2.9`, `decision_almacenamiento_emisor_mc_loc_2i.md §2.2` | NO |
-| 20 | Autorización explícita de Ariel/Torre para cada paso | **NO CUMPLIDA** | Requiere orden por escrito; no emitida todavía | **BLOQUEANTE** |
-| 21 | Auditoría previa al PR técnico | **NO CUMPLIDA** | Patrón ya conocido (MC-LOC-1A, MC-LOC-2B-A, MC-LOC-2E, MC-LOC-2I-A); auditoría del PR técnico aún no existe | **BLOQUEANTE** |
-| 22 | Orden técnica separada y específica | **NO CUMPLIDA** | Requiere orden explícita "habilito MC-LOC-2 técnico" con alcance puntual; no emitida | **BLOQUEANTE** |
+| 20 | Autorización explícita de Ariel/Torre para cada paso | **BLOQUEANTE** | Requiere orden por escrito; no emitida todavía | **BLOQUEANTE** |
+| 21 | Auditoría previa al PR técnico | **BLOQUEANTE** | Patrón ya conocido (MC-LOC-1A, MC-LOC-2B-A, MC-LOC-2E, MC-LOC-2I-A); auditoría del PR técnico aún no existe | **BLOQUEANTE** |
+| 22 | Orden técnica separada y específica | **BLOQUEANTE** | Requiere orden explícita "habilito MC-LOC-2 técnico" con alcance puntual; no emitida | **BLOQUEANTE** |
+
+### Resumen de estados (corregido en MC-LOC-2J-B)
+
+| Estado | Cantidad | Condiciones |
+|--------|---------:|-------------|
+| CUMPLIDA | 3 | #1, #18, #19 |
+| CUMPLIDA CON LÍMITES | 12 | #2, #3, #4, #5, #6, #11, #12, #13, #14, #15, #16, #17 |
+| NO CUMPLIDA | 4 | #7, #8, #9, #10 |
+| BLOQUEANTE | 3 | #20, #21, #22 |
+| **Total** | **22** | |
+
+MC-LOC-2 técnico sigue **NO habilitado**. Esta corrección no autoriza técnica, no introduce tracking real, no introduce ubicación real, no toca producción.
 
 ## 4. Evaluación conservadora
 
@@ -70,7 +82,7 @@ Criterio aplicado:
 
 ### 5.1 Condiciones ya cubiertas documentalmente
 
-**12 condiciones** con cobertura documental sólida:
+**15 condiciones** cubiertas documentalmente o cubiertas con límites:
 
 - #1 (merge MC-LOC-2I).
 - #2 (lista de paths potenciales).
@@ -85,13 +97,14 @@ Criterio aplicado:
 
 ### 5.2 Condiciones que solo pueden verificarse en un futuro PR técnico
 
-**6 condiciones** son entregables del eventual PR técnico, no del estado documental actual:
+**4 condiciones** son entregables del eventual PR técnico, no del estado documental actual:
 
 - #7 validación fail-closed (regla declarada; ejecución pendiente).
 - #8 evento válido de ejemplo (archivo `.json` no creado).
 - #9 rechazo de campo prohibido (prueba no ejecutada).
 - #10 rechazo de `state` inválido (prueba no ejecutada).
-- #5/#6/#11 confirmación final en el diff y el comportamiento del PR técnico (cobertura documental SÍ; verificación real NO).
+
+> Nota aclaratoria: las condiciones #5, #6 y #11 ya están contabilizadas en §5.1 con su cobertura documental. Su verificación final en el diff y el comportamiento del PR técnico no agrega un ítem adicional al conteo; es la misma condición evaluada en otra fase.
 
 ### 5.3 Condiciones que requieren autorización humana explícita
 
