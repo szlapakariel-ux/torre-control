@@ -12,6 +12,7 @@
 - **ORDENES_REMOTAS_EN_VUELO**: 0
 - **Bloqueos**: ninguno
 - **MC-LOC-2 técnico**: NO habilitado (requiere orden explícita de Torre; ver saga location-tracking más abajo).
+- **Nomenclatura location-tracking (decisión de Torre, tras MC-LOC-2K-A)**: **MC-LOC-2 = fase documental** (cerrada); **MC-LOC-3 = futura fase técnica mínima demo**, solo si Ariel/Torre la autoriza más adelante. Esta decisión **no habilita implementación**.
 - **Órdenes en suspenso**: ORD-2026-04-25-10 (`.torre/inbox/suspendidas/ORD-2026-04-25-10.md`) — diagnóstico Portero V1 en agente-saas, congelada hasta nueva decisión de Torre.
 
 ## Resumen del estado del sistema
@@ -26,7 +27,8 @@
   - MC-LOC-2I (PR #29) — decisión de almacenamiento y emisor.
   - MC-LOC-2J (PR #30) — preflight de habilitación técnica (22 condiciones).
   - MC-LOC-2K (PR #31) — orden técnica mínima documental (borrador NO EJECUTABLE).
-  - **MC-LOC-2 técnico sigue NO habilitado.** Regla central: el nombre de una branch no autoriza implementación. Para abrir la fase técnica (probable MC-LOC-3) Torre debe emitir orden explícita con la frase de autorización definida en el contrato. Nada de código/scripts/workflows/producción se tocó en toda la saga.
+  - MC-LOC-2K-A (auditoría read-only de la orden técnica mínima) — cerrada **APTA** (dictamen A).
+  - **MC-LOC-2 técnico sigue NO habilitado.** Regla central: el nombre de una branch no autoriza implementación. Tras MC-LOC-2K-A, Torre fijó la nomenclatura definitiva: **la fase documental es MC-LOC-2** y **la futura fase técnica mínima demo será MC-LOC-3**, que solo se abre con orden explícita de Torre y la frase de autorización definida en el contrato. Nada de código/scripts/workflows/producción se tocó en toda la saga.
 - `main` protegido (PR obligatorio, status check `detect-cycle-closure`, force/delete bloqueados).
 - Stubs Claude/Codex intactos.
 - Workflow principal `torre-trigger-v1` intacto.
@@ -56,7 +58,7 @@
 
 ## Próxima decisión recomendada
 
-- **Sobre location-tracking**: si Torre quiere avanzar, el siguiente paso documental es la auditoría read-only de la orden técnica mínima (MC-LOC-2K-A) y luego la secuencia PR/pre-merge/merge. La fase técnica (MC-LOC-3) **solo** se abre con orden explícita de Torre que incluya la frase de autorización del contrato. Mientras tanto, MC-LOC-2 técnico permanece NO habilitado.
+- **Sobre location-tracking**: la fase documental (MC-LOC-2) está cerrada y auditada (MC-LOC-2K-A apta). La futura fase técnica mínima demo (**MC-LOC-3**) **solo** se abre con orden explícita de Torre que incluya la frase de autorización del contrato. Mientras tanto, MC-LOC técnico permanece NO habilitado. **No hay orden activa**; Torre queda en reposo a la espera de una eventual orden MC-LOC-3.
 - **Sobre PRs #1/#2**: decidir cierre o retoma.
 
 ## Próximo trigger esperado
