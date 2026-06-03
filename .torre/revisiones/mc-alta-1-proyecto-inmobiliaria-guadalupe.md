@@ -2,6 +2,7 @@
 # Oferta personalizada inmobiliaria — Guadalupe Cabrera
 
 > **Microciclo:** MC-ALTA-1
+> **Ajuste:** MC-ALTA-1-AJUSTE-REPO — repo técnico informado por Ariel como existente
 > **Autoridad emisora:** Torre de Control
 > **Tipo:** alta documental (NO crea repo, NO implementa, NO modifica registro operativo)
 > **Estado del proyecto:** `conocido / no iniciado`
@@ -25,13 +26,15 @@ Este ciclo **NO** crea repo, **NO** modifica el registro operativo de proyectos 
 | **Nombre funcional** | Oferta personalizada inmobiliaria — Guadalupe Cabrera |
 | **Alias principal sugerido** | `inmobiliaria` |
 | **Alias alternativos sugeridos** | `guadalupe`, `gc-inmo` |
-| **Repo técnico** | `pendiente de creación` |
-| **Repo sugerido** | `szlapakariel-ux/inmobiliaria-guadalupe` (alternativa: `szlapakariel-ux/oferta-inmobiliaria-guadalupe`) |
+| **Repo técnico** | `pendiente de confirmación exacta: repo informado por Ariel como "Inmobiliaria-"` |
+| **Estado del repo** | `existente / pendiente de vinculación formal por Torre` |
 | **Rama destino** | `pendiente de confirmación` |
 | **Estado inicial** | `conocido / no iniciado` |
 | **Responsable / fuente de verdad** | Ariel · Guadalupe Cabrera |
 
 > Los alias listados son **sugeridos**. Ninguno queda registrado en `.torre/proyectos.md` por este ciclo, y ninguno habilita implementación por sí mismo.
+
+> ⚠️ **La existencia del repo NO habilita implementación.** La Torre todavía debe: confirmar owner/repo exacto · confirmar rama destino · confirmar alcance inicial · emitir una orden separada antes de cualquier trabajo técnico en ese repo.
 
 ---
 
@@ -40,6 +43,13 @@ Este ciclo **NO** crea repo, **NO** modifica el registro operativo de proyectos 
 **Todo proyecto real debe tener repo propio antes de cualquier implementación técnica.**
 
 La Torre **gobierna, ordena, audita y controla cumplimiento**, pero el **trabajo real del proyecto debe vivir en su propio repo**. La Torre no aloja el trabajo técnico del proyecto.
+
+**La existencia del repo no es suficiente para habilitar implementación.** Antes de cualquier trabajo técnico en el repo del proyecto, la Torre debe:
+
+1. confirmar owner/repo exacto
+2. confirmar rama destino
+3. confirmar alcance inicial
+4. emitir una orden separada con esos campos declarados
 
 ---
 
@@ -71,6 +81,7 @@ Definir qué se tiene que lograr a partir de:
 Este ciclo **no habilita** ninguna de las siguientes acciones:
 
 - ❌ crear repo real
+- ❌ tocar o clonar el repo inmobiliario existente
 - ❌ crear app
 - ❌ crear landing
 - ❌ automatizar publicaciones
@@ -115,7 +126,7 @@ Ningún otro paso queda habilitado automáticamente por este ciclo.
 El ciclo queda cerrado porque:
 
 - ✅ el proyecto queda clasificado como `conocido / no iniciado`
-- ✅ queda claro que el repo técnico está **pendiente de creación**
+- ✅ queda claro que el repo técnico **existe pero está pendiente de vinculación formal por Torre** (nombre parcial informado: "Inmobiliaria-")
 - ✅ queda claro que antes de implementar debe existir **repo propio**
 - ✅ queda claro que Torre **controla** el proyecto, pero **no aloja** el trabajo técnico del proyecto
 - ✅ queda definido el próximo paso documental posible (`MC-ALTA-2`)
@@ -129,7 +140,7 @@ El ciclo queda cerrado porque:
 
 - **MC-ALTA-1:** CERRADO (alta documental).
 - **Proyecto "Oferta personalizada inmobiliaria — Guadalupe Cabrera":** `conocido / no iniciado`.
-- **Repo técnico:** pendiente de creación.
+- **Repo técnico:** `existente / pendiente de vinculación formal por Torre` — nombre parcial informado por Ariel: "Inmobiliaria-" · confirmación exacta de owner/repo/rama pendiente.
 - **`.torre/proyectos.md`:** NO modificado.
 - **`.torre/estado.md`:** NO modificado.
 - **`.torre/protocolo_alta_proyecto.md`:** NO modificado.
