@@ -69,6 +69,33 @@ Un archivo JSON consumible por runtime (ej. `.torre/proyectos.json`, `.torre/inb
 
 ---
 
+### 4. Oferta personalizada inmobiliaria — Guadalupe Cabrera
+
+| Campo | Valor |
+|---|---|
+| **Proyecto funcional** | Oferta personalizada inmobiliaria — Guadalupe Cabrera |
+| **Alias principal** | `inmobiliaria` |
+| **Alias alternativos** | `guadalupe`, `gc-inmo` |
+| **Repo técnico** | `szlapakariel-ux/Inmobiliaria-` |
+| **Rama destino** | `main` |
+| **Estado** | `conocido / no iniciado` |
+| **Responsable / fuente de verdad** | Ariel · Guadalupe Cabrera |
+
+#### Contexto del proyecto
+
+| Campo | Detalle |
+|---|---|
+| **Qué vende Guadalupe** | Servicio como agente inmobiliaria · propiedades · bundle agente + propiedades · captación de propietarios interesados en vender |
+| **Material existente informado** | Fotos de propiedades (ZonaProp u otros portales) · datos de propiedades (precio, ubicación, características) · contacto y datos de Guadalupe como agente · posible logo o branding personal |
+| **Canales previstos** | WhatsApp (principal) · Instagram · PDF para enviar |
+| **Públicos** | Compradores / hot leads · propietarios interesados en vender |
+| **Primer resultado buscado** | Oferta profesional que parezca propia de Guadalupe, no una copia de portal. Formato replicable. |
+| **Antecedentes en Torre** | MC-ALTA-1 (`3ece45f`) · MC-ALTA-2 (`839c34a`) |
+
+> ⚠️ **La vinculación en este registro NO habilita implementación.** Antes de tocar `szlapakariel-ux/Inmobiliaria-` hace falta una orden técnica separada con repo, rama, alcance y ejecutor declarados.
+
+---
+
 ## Regla de seguridad
 
 Ninguno de los proyectos registrados aquí queda habilitado para implementación técnica por el solo hecho de estar listado en este documento. Toda implementación requiere:
