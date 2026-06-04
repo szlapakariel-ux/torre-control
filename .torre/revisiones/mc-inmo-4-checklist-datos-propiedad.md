@@ -292,7 +292,55 @@ Notas:
 
 ---
 
-## G. Riesgos
+## G. Datos que NO se deben inventar
+
+Los siguientes campos **deben venir siempre de Guadalupe o de la fuente propietaria legítima**. Ninguno puede fabricarse, estimarse sin base real ni completarse con datos de portales externos.
+
+| Campo | Por qué no se inventa |
+|---|---|
+| **Precio** | dato comercial vinculante; un error puede generar expectativas falsas o conflictos legales |
+| **Medidas** | dato técnico verificable; inventar superficies puede derivar en publicidad engañosa |
+| **Ubicación** | dato de identidad de la propiedad; zona o dirección incorrecta invalida la oferta |
+| **Expensas** | costo mensual real para el comprador/inquilino; diferencia significativa según edificio |
+| **Disponibilidad** | la propiedad puede estar reservada, vendida o alquilada; publicar sin confirmar es un error |
+| **Amenities** | lo que el edificio tiene o no tiene; inventar amenities genera promesas incumplibles |
+| **Estado de la propiedad** | determina expectativas de habitabilidad y precio; no puede suponerse |
+| **Datos legales** | situación dominial, hipoteca, inhibiciones; solo Guadalupe/propietario los conocen |
+| **Permisos de fotos** | sin autorización confirmada del propietario/fotógrafo, las fotos no pueden usarse |
+| **Contacto** | número de WhatsApp, Instagram o email de Guadalupe; solo ella define cuál publicar |
+| **Matrícula** | dato de habilitación profesional de Guadalupe; no puede omitirse ni inventarse |
+| **Promesas comerciales** | "garantizo venta en 30 días", "mejor precio del barrio", etc. → prohibidas sin respaldo |
+
+> ⚠️ Si alguno de estos campos falta al momento de producir una oferta, **se frena y se pide a Guadalupe** antes de publicar nada.
+
+---
+
+## H. Reglas de uso de publicaciones externas
+
+Las publicaciones de portales inmobiliarios (ZonaProp, RE/MAX, Argenprop, u otros) solo pueden usarse como **referencia estructural**.
+
+### Usos permitidos
+
+- ✅ entender qué campos suele tener una publicación inmobiliaria
+- ✅ entender la jerarquía de información (qué va primero, qué va al fondo)
+- ✅ entender la estructura comercial general
+- ✅ detectar información que puede estar faltando en el checklist propio
+- ✅ diseñar el checklist de datos a pedir a Guadalupe
+
+### Usos prohibidos
+
+- ❌ copiar textos (ni uno solo)
+- ❌ copiar imágenes
+- ❌ copiar diseño
+- ❌ crear piezas finales a partir de contenido externo
+- ❌ publicar contenido derivado de una publicación de terceros
+- ❌ usar el acceso a una publicación de portal como autorización para redistribuir su contenido
+
+> Toda oferta producida por Guadalupe debe nacer con **texto propio, fotos autorizadas y datos verificados** — no con elementos tomados de portales.
+
+---
+
+## I. Riesgos
 
 | Riesgo | Descripción |
 |---|---|
@@ -305,13 +353,18 @@ Notas:
 
 ---
 
-## H. Próximo microciclo recomendado
+## J. Próximo microciclo recomendado
 
-**`MC-INMO-5 — Primera oferta real con propiedad concreta de Guadalupe`**
+**`MC-INMO-5 — Primera oferta real controlada con datos aportados por Guadalupe`**
 
 Objetivo: tomar la ficha de briefing (sección F) completada con una propiedad real y material autorizado, y producir un primer borrador de oferta aplicando la plantilla de MC-INMO-3.
 
-**Prerrequisito:** briefing completo + fotos con permiso de uso confirmado + tono/branding de Guadalupe. Sin esos insumos, no queda habilitado.
+**MC-INMO-5 solo puede avanzar si Ariel o Guadalupe aportan:**
+- una propiedad concreta con todos los campos obligatorios del checklist (sección E.1)
+- fotos con permiso de uso confirmado
+- datos de contacto definitivos de Guadalupe
+
+Sin esos insumos, no queda habilitado.
 
 Alternativa si se desea releer las publicaciones de referencia:
 
@@ -319,7 +372,7 @@ Alternativa si se desea releer las publicaciones de referencia:
 
 ---
 
-## I. Estado final
+## K. Estado final
 
 - **MC-INMO-4:** CERRADO (definición documental de checklist).
 - **Proyecto:** `conocido / no iniciado` — sin cambio de estado.
