@@ -1,29 +1,31 @@
-const fs   = require('fs');
-const path = require('path');
+const db = require('./db');
 
-const FILE = path.join(__dirname, '..', 'data', 'messages.json');
+const insertStmt = db.prepare(`
+  INSERT INTO messages (project, message, intent, priority, response, next_step, timestamp)
+  VALUES (@project, @message, @intent, @priority, @response, @nextStep, @timestamp)
+`);
 
-function readAll() {
-  try {
-    const raw = fs.readFileSync(FILE, 'utf8').trim();
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
+const selectAllStmt = db.prepare(`
+  SELECT id, project, message, intent, priority, response,
+         next_step AS nextStep, timestamp
+  FROM messages
+  ORDER BY id ASC
+`);
 
 function saveMessage({ project, message, intent, priority, response, nextStep }) {
-  const records = readAll();
-  records.push({
+  insertStmt.run({
     project:   project ?? null,
     message,
-    intent,
-    priority,
-    response,
-    nextStep,
+    intent:    intent ?? null,
+    priority:  priority ?? null,
+    response:  response ?? null,
+    nextStep:  nextStep ?? null,
     timestamp: new Date().toISOString(),
   });
-  fs.writeFileSync(FILE, JSON.stringify(records, null, 2), 'utf8');
+}
+
+function readAll() {
+  return selectAllStmt.all();
 }
 
 module.exports = { saveMessage, readAll };
