@@ -1,0 +1,16 @@
+# Configuración de Railway para el backend Torre de Control.
+# Aplica cuando el "Root Directory" del servicio se setea en /backend.
+
+[build]
+builder = "dockerfile"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+startCommand = "node server.js"
+healthcheckPath = "/api/health"
+healthcheckTimeout = 100
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 10
+
+# Recordatorio: el volumen persistente (montado en DATA_DIR, p.ej. /app/data)
+# se configura desde el dashboard de Railway, no desde este archivo.
