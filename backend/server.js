@@ -10,9 +10,10 @@ const { readKnowledge, saveKnowledgeItem, updateKnowledgeItem } = require('./ser
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Orígenes permitidos para CORS. En producción se setea ALLOWED_ORIGIN
-// (uno o varios separados por coma). Sin la variable, se cae a localhost para dev.
-const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGIN || 'http://localhost:3001,http://localhost:5173')
+// Orígenes extra permitidos para CORS cross-origin (separados por coma).
+// El mismo origen (frontend servido por este backend) se permite siempre,
+// sin depender de esta variable. Solo hace falta si servís el front en otro host.
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGIN || '')
   .split(',')
   .map((o) => o.trim())
   .filter(Boolean);
@@ -23,12 +24,18 @@ const API_TOKEN = process.env.API_TOKEN || '';
 
 app.set('trust proxy', 1);
 app.use(helmet());
-app.use(cors({
-  origin(origin, cb) {
-    // Permite herramientas sin Origin (curl, health checks) y orígenes en lista.
-    if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
-    return cb(new Error('Origen no permitido por CORS.'));
-  },
+
+// CORS: permite mismo origen (host del Origin == Host de la request) y los
+// orígenes de ALLOWED_ORIGIN. Para el resto NO devuelve 403: simplemente no
+// emite headers CORS y deja que el navegador bloquee del lado del cliente.
+// La seguridad real de escritura es el token, no CORS.
+app.use(cors((req, cb) => {
+  const origin = req.header('Origin');
+  if (!origin) return cb(null, { origin: true }); // curl, health checks, same-origin sin Origin
+  let sameOrigin = false;
+  try { sameOrigin = new URL(origin).host === req.headers.host; } catch { /* Origin malformado */ }
+  if (sameOrigin || ALLOWED_ORIGINS.includes(origin)) return cb(null, { origin: true });
+  return cb(null, { origin: false });
 }));
 app.use(express.json({ limit: '32kb' }));
 
@@ -151,9 +158,6 @@ app.use((err, _req, res, _next) => {
   }
   if (err instanceof SyntaxError && 'body' in err) {
     return res.status(400).json({ ok: false, error: 'JSON inválido.' });
-  }
-  if (err.message === 'Origen no permitido por CORS.') {
-    return res.status(403).json({ ok: false, error: err.message });
   }
   console.error('Error no controlado:', err);
   res.status(500).json({ ok: false, error: 'Error interno del servidor.' });
