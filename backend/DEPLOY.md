@@ -27,11 +27,19 @@ o los datos se pierden en cada redeploy (los contenedores son efímeros).
 
 ## Despliegue en Railway
 
-1. Crear servicio desde este repo, root del servicio = `backend/`.
-2. Setear variables: `ALLOWED_ORIGIN`, `API_TOKEN`. (`PORT` lo da Railway.)
-3. Agregar un **Volume** montado en `/app/data` y setear `DATA_DIR=/app/data`.
-4. Deploy. Railway detecta el `Dockerfile` (o usa nixpacks con `npm start`).
+El backend **sirve el frontend** desde el mismo origen, así que el build se hace
+desde la **raíz del repo** (no desde `backend/`). El `Dockerfile` y `railway.toml`
+viven en la raíz.
+
+1. Crear servicio desde este repo. **Root Directory = raíz** (el valor por defecto;
+   no lo pongas en `backend/`).
+2. Setear variables: `API_TOKEN`. (`PORT` lo da Railway. `ALLOWED_ORIGIN` solo hace
+   falta si servís el frontend en otro host; sirviéndolo desde el backend no se usa.)
+3. Agregar un **Volume** montado en `/app/backend/data` y setear
+   `DATA_DIR=/app/backend/data`.
+4. Deploy. Railway detecta el `Dockerfile` de la raíz.
 5. Healthcheck path: `/api/health`.
+6. El frontend queda disponible en la raíz de la URL del servicio (`/`).
 
 ## Migrar datos legacy (one-shot)
 
@@ -45,6 +53,9 @@ Es idempotente: no duplica.
 
 ## Frontend
 
-En `frontend/config.js`, poné `backendUrl` con la URL pública del backend.
+Servido por el backend en la raíz (`/`). En `frontend/config.js`, `backendUrl`
+queda en `''` (mismo origen, rutas relativas). Solo poné una URL absoluta si
+servís el frontend en otro host.
+
 El frontend pide el `API_TOKEN` una vez por el navegador y lo guarda en
 `localStorage` (no se versiona el secreto).

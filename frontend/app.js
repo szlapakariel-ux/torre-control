@@ -1,5 +1,6 @@
 // ── Config ────────────────────────────────────────────
-const API_BASE = (window.TC_CONFIG?.backendUrl || 'http://localhost:3001').replace(/\/$/, '');
+// backendUrl vacío → mismo origen (rutas relativas), porque el backend sirve este front.
+const API_BASE = (window.TC_CONFIG?.backendUrl || '').replace(/\/$/, '');
 const MESSAGE_URL   = `${API_BASE}/api/message`;
 const KNOWLEDGE_URL = `${API_BASE}/api/knowledge`;
 

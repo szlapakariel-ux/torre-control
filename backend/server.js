@@ -1,4 +1,5 @@
 const express = require('express');
+const path = require('path');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
@@ -30,6 +31,9 @@ app.use(cors({
   },
 }));
 app.use(express.json({ limit: '32kb' }));
+
+// Sirve el frontend estático desde el mismo origen (sin CORS entre front y back).
+app.use(express.static(path.join(__dirname, '..', 'frontend')));
 
 const writeLimiter = rateLimit({
   windowMs: 60 * 1000,

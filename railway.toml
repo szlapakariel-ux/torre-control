@@ -1,5 +1,6 @@
-# Configuración de Railway para el backend Torre de Control.
-# Aplica cuando el "Root Directory" del servicio se setea en /backend.
+# Configuración de Railway. Se construye desde la raíz del repo (Root Directory
+# del servicio = raíz, el valor por defecto), para que el backend pueda servir
+# el frontend estático.
 
 [build]
 builder = "dockerfile"
@@ -12,5 +13,5 @@ healthcheckTimeout = 100
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 10
 
-# Recordatorio: el volumen persistente (montado en DATA_DIR, p.ej. /app/data)
+# Recordatorio: el volumen persistente (montado en DATA_DIR = /app/backend/data)
 # se configura desde el dashboard de Railway, no desde este archivo.
