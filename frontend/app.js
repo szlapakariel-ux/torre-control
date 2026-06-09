@@ -1,5 +1,22 @@
 // ── Config ────────────────────────────────────────────
-const BACKEND_URL = 'http://localhost:3001/api/message';
+const API_BASE = (window.TC_CONFIG?.backendUrl || 'http://localhost:3001').replace(/\/$/, '');
+const MESSAGE_URL   = `${API_BASE}/api/message`;
+const KNOWLEDGE_URL = `${API_BASE}/api/knowledge`;
+
+// Token de escritura. Se pide una vez y se guarda en localStorage.
+function getToken() {
+  let token = localStorage.getItem('TC_TOKEN');
+  if (!token) {
+    token = window.prompt('Ingresá el token de acceso de la Torre de Control:') || '';
+    if (token) localStorage.setItem('TC_TOKEN', token.trim());
+  }
+  return (token || '').trim();
+}
+
+function authHeaders() {
+  const token = getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 const INTENT_LABELS = {
   error:            'Error',
@@ -133,9 +150,9 @@ async function sendMessage(autoSend = false) {
   let responseText = '';
 
   try {
-    const res = await fetch(BACKEND_URL, {
+    const res = await fetch(MESSAGE_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify({
         project: document.getElementById('projectSelector').value,
         mode: 'pensar',
@@ -150,7 +167,8 @@ async function sendMessage(autoSend = false) {
       chatMessages.appendChild(createSystemMessage(data.response, data.intent));
       responseText = data.response;
     } else {
-      const msg = 'Hubo un problema procesando tu mensaje.';
+      if (res.status === 401) localStorage.removeItem('TC_TOKEN');
+      const msg = data.error || 'Hubo un problema procesando tu mensaje.';
       chatMessages.appendChild(createSystemMessage(msg, null));
       responseText = msg;
     }
@@ -265,7 +283,7 @@ async function loadLastDecision() {
   if (!el) return;
 
   try {
-    const res  = await fetch('http://localhost:3001/api/knowledge?project=Torre%20de%20control');
+    const res  = await fetch(`${KNOWLEDGE_URL}?project=Torre%20de%20control`);
     const data = await res.json();
 
     if (!data.ok || !data.items.length) {
@@ -277,20 +295,23 @@ async function loadLastDecision() {
     const { title, description } = item.currentVersion;
 
     el.innerHTML = '';
-        const spanTopic = document.createElement('span');
-            spanTopic.className = 'decision-topic';
-                spanTopic.textContent = item.topic;
-                    const strongTitle = document.createElement('strong');
-                        strongTitle.className = 'decision-title';
-                            strongTitle.textContent = title;
-                                el.appendChild(spanTopic);
-                                    el.appendChild(strongTitle);
-                                        if (description) {
-                                              const spanDesc = document.createElement('span');
-                                                    spanDesc.className = 'decision-desc';
-                                                          spanDesc.textContent = description;
-                                                                el.appendChild(spanDesc);
-                                                                    }
+
+    const spanTopic = document.createElement('span');
+    spanTopic.className = 'decision-topic';
+    spanTopic.textContent = item.topic;
+    el.appendChild(spanTopic);
+
+    const strongTitle = document.createElement('strong');
+    strongTitle.className = 'decision-title';
+    strongTitle.textContent = title;
+    el.appendChild(strongTitle);
+
+    if (description) {
+      const spanDesc = document.createElement('span');
+      spanDesc.className = 'decision-desc';
+      spanDesc.textContent = description;
+      el.appendChild(spanDesc);
+    }
   } catch {
     el.textContent = 'No hay decisiones registradas.';
   }
