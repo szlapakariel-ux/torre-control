@@ -2,11 +2,12 @@
 
 - **PROYECTO_FUNCIONAL**: Torre de Control
 - **REPO_TECNICO**: szlapakariel-ux/torre-control
-- **Última actualización**: 2026-06-02
-- **Última orden cerrada**: MC-2E — cierre documental del bloque MC-2 (proyecto activo / alias / alta de proyecto) (PR #37, commit `908a78f`)
+- **Última actualización**: 2026-06-09
+- **Última orden cerrada**: MC-APP-1 — preparación de producción del app (backend + frontend) (ORD-20260609-01, PR #58)
 - **Operador del último ciclo**: Claude Code (`claude_code`)
-- **Rama destino del último ciclo**: `main`
-- **Archivo del último ciclo**: `.torre/revisiones/mc-2e-cierre-bloque-proyectos-alias.md`
+- **Rama destino del último ciclo**: `main` (vía PR #58, pendiente de merge)
+- **Archivo del último ciclo**: `.torre/revisiones/mc-app-1-preparacion-produccion-app.md`
+- **Gate de producción del app**: **DEVUELTO A AUTORIZACIÓN** — no APROBADO. Faltan auditor independiente, autorización explícita de Ariel y verificación de rollback. Ver el archivo del último ciclo.
 - **Orden activa**: NO (inbox en placeholder)
 - **EN_PROCESO_POR**: ninguno
 - **ORDENES_REMOTAS_EN_VUELO**: 0
@@ -42,7 +43,8 @@
 - Workflow principal `torre-trigger-v1` intacto.
 - Workflow `claude-cli-feasibility-test`: APROBADO en feasibility manual de Torre.
 - `inbox/orden_actual.md` y `outbox/reporte_actual.md` en placeholder — no hay orden activa.
-- Backend y frontend sin cambios. Cero dependencias nuevas. Cero código tocado en MC-1 ni en la saga MC-LOC.
+- **Hasta MC-2**: backend y frontend sin cambios, cero dependencias, cero código tocado en MC-1 ni en la saga MC-LOC.
+- **MC-APP-1 (2026-06-09, ORD-20260609-01, PR #58)** — primer microciclo de la línea **MC-APP** (el app como producto técnico). Dejó el app desplegable: persistencia en SQLite (migración idempotente de los JSON legacy), config por entorno (`PORT`/`ALLOWED_ORIGIN`/`DATA_DIR`/`API_TOKEN`), CORS cerrado, auth Bearer en escrituras, helmet + rate limit + manejo de errores + apagado ordenado, frontend servido desde el backend, y artefactos de deploy (`Dockerfile`, `railway.toml`, `.dockerignore`, `.env.example`, `DEPLOY.md`, `.gitignore`); `node_modules` desversionado. **El gate de producción NO quedó aprobado** (ver más abajo). Detalle: `.torre/revisiones/mc-app-1-preparacion-produccion-app.md`.
 
 ## Sugerencias acumuladas para próximas órdenes
 
@@ -66,6 +68,7 @@
 
 ## Próxima decisión recomendada
 
+- **Sobre MC-APP-1 / gate de producción**: la preparación técnica está cerrada, pero el pase a producción **no está aprobado**. Para cerrar el gate hace falta: (1) auditor independiente distinto del ejecutor, (2) autorización explícita de Ariel registrada (no inferida), (3) verificación de rollback. Mientras tanto, si Ariel mergea #58 y despliega, lo hace como decisión directa del dueño, no como pase aprobado por el gate de Torre.
 - **Sobre el bloque MC-2**: cerrado por completo (MC-2B→MC-2E en `main`). La Torre ya puede gestionar proyectos y alias documentalmente. Próximo uso posible (requiere orden separada): alta documental de un proyecto real, selección de proyecto activo por alias, auditoría de proyectos registrados, o preparación de un JSON/runtime si Torre lo autoriza.
 - **Sobre location-tracking**: la fase documental (MC-LOC-2) está cerrada y auditada (MC-LOC-2K-A apta). La futura fase técnica mínima demo (**MC-LOC-3**) **solo** se abre con orden explícita de Torre que incluya la frase de autorización del contrato. Mientras tanto, MC-LOC técnico permanece NO habilitado. **No hay orden activa**; Torre queda en reposo a la espera de una eventual orden MC-LOC-3.
 - **Sobre PRs #1/#2**: decidir cierre o retoma.

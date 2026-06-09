@@ -1,4 +1,6 @@
-# ORDEN ACTUAL
+# ORDEN ACTUAL — sin orden activa
+
+No hay ciclo en curso. Último ciclo cerrado archivado en `.torre/historial/`.
 
 Para iniciar un ciclo, la Torre debe reemplazar este archivo con una orden basada en `.torre/templates/orden_template.md`. La orden debe incluir los siete campos obligatorios:
 
