@@ -43,13 +43,18 @@ viven en la raíz.
 
 ## Migrar datos legacy (one-shot)
 
-Si venís de los archivos `data/messages.json` / `data/knowledge.json`:
+El repo **no incluye datos demo**: producción arranca con la base vacía y el
+servidor crea el esquema al levantar. El script `scripts/migrate-json-to-sqlite.js`
+queda disponible por si en el futuro hay que importar `data/messages.json` /
+`data/knowledge.json`:
 
 ```bash
 node scripts/migrate-json-to-sqlite.js
 ```
 
-Es idempotente: no duplica.
+Es idempotente: no duplica. Nota: si `DATA_DIR` apunta a un volumen montado en
+`backend/data/`, ese volumen tapa cualquier JSON horneado en esa misma ruta; para
+importar, dejá los JSON fuera de `DATA_DIR`.
 
 ## Frontend
 
