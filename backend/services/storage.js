@@ -13,7 +13,7 @@ const selectAllStmt = db.prepare(`
 `);
 
 function saveMessage({ project, message, intent, priority, response, nextStep }) {
-  insertStmt.run({
+  const info = insertStmt.run({
     project:   project ?? null,
     message,
     intent:    intent ?? null,
@@ -22,6 +22,7 @@ function saveMessage({ project, message, intent, priority, response, nextStep })
     nextStep:  nextStep ?? null,
     timestamp: new Date().toISOString(),
   });
+  return info.lastInsertRowid;
 }
 
 function readAll() {

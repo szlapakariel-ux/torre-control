@@ -3,9 +3,11 @@ const path = require('path');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-const { classifyIntent } = require('./services/intentClassifier');
 const { saveMessage } = require('./services/storage');
 const { readKnowledge, saveKnowledgeItem, updateKnowledgeItem } = require('./services/knowledgeStore');
+const { analyzeMessage } = require('./services/torreBrain');
+const { createEvent, listEvents, updateEvent, getRanking } = require('./services/plicStore');
+const { EVENT_TYPES, EVENT_STATUSES } = require('./services/plicScore');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -59,36 +61,65 @@ function requireAuth(req, res, next) {
 const MAX_MESSAGE_LENGTH = 4000;
 const MAX_FIELD_LENGTH = 2000;
 
-app.post('/api/message', writeLimiter, requireAuth, (req, res) => {
-  const { project, mode, message } = req.body ?? {};
+// async: analyzeMessage puede llamar a la API de Claude. En Express 4 el
+// middleware de error global NO captura rechazos async, así que el handler
+// envuelve todo en try/catch y delega a next(err) ante una falla inesperada.
+app.post('/api/message', writeLimiter, requireAuth, async (req, res, next) => {
+  try {
+    const { project, mode, message } = req.body ?? {};
 
-  if (!message || typeof message !== 'string' || !message.trim()) {
-    return res.status(400).json({ ok: false, error: 'Mensaje vacío o inválido.' });
+    if (!message || typeof message !== 'string' || !message.trim()) {
+      return res.status(400).json({ ok: false, error: 'Mensaje vacío o inválido.' });
+    }
+    if (message.length > MAX_MESSAGE_LENGTH) {
+      return res.status(400).json({ ok: false, error: `El mensaje supera el máximo de ${MAX_MESSAGE_LENGTH} caracteres.` });
+    }
+
+    const text = message.trim();
+    // analyzeMessage tiene fallback interno: nunca lanza por falta de key o
+    // error de la API; siempre devuelve una clasificación (IA o keywords).
+    const result = await analyzeMessage({ message: text, project });
+
+    const messageId = saveMessage({
+      project,
+      message:  text,
+      intent:   result.intent,
+      priority: result.priority,
+      response: result.response,
+      nextStep: result.nextStep,
+    });
+
+    // Cada mensaje del chat queda registrado como evento PLIC: así el ranking
+    // está vivo desde el primer mensaje, sin curaduría manual.
+    createEvent({
+      source:         'chat',
+      project:        project ?? null,
+      event_type:     result.plic.event_type,
+      actor:          'ariel',
+      description:    text,
+      impact:         result.plic.impact,
+      urgency:        result.plic.urgency,
+      blocked_items:  result.plic.blocked_items,
+      repetition:     result.plic.repetition,
+      risk:           result.plic.risk,
+      recommendation: result.nextStep,
+      message_id:     messageId,
+    });
+
+    res.json({
+      ok: true,
+      project: project ?? null,
+      mode: mode ?? 'pensar',
+      intent: result.intent,
+      priority: result.priority,
+      response: result.response,
+      nextStep: result.nextStep,
+      plic: result.plic,
+      source: result.source,
+    });
+  } catch (err) {
+    next(err);
   }
-  if (message.length > MAX_MESSAGE_LENGTH) {
-    return res.status(400).json({ ok: false, error: `El mensaje supera el máximo de ${MAX_MESSAGE_LENGTH} caracteres.` });
-  }
-
-  const classified = classifyIntent(message.trim());
-
-  saveMessage({
-    project,
-    message:   message.trim(),
-    intent:    classified.intent,
-    priority:  classified.priority,
-    response:  classified.response,
-    nextStep:  classified.nextStep,
-  });
-
-  res.json({
-    ok: true,
-    project: project ?? null,
-    mode: mode ?? 'pensar',
-    intent: classified.intent,
-    priority: classified.priority,
-    response: classified.response,
-    nextStep: classified.nextStep,
-  });
 });
 
 // ── Knowledge endpoints ───────────────────────────────
@@ -136,6 +167,52 @@ app.get('/api/knowledge', (req, res) => {
   const all = readKnowledge();
   const result = project ? all.filter((i) => i.project === project) : all;
   res.json({ ok: true, items: result });
+});
+
+// ── PLIC events endpoints ─────────────────────────────
+
+app.post('/api/events', writeLimiter, requireAuth, (req, res) => {
+  const { description, event_type } = req.body ?? {};
+
+  if (!description || typeof description !== 'string' || !description.trim()) {
+    return res.status(400).json({ ok: false, error: 'Falta el campo obligatorio: description.' });
+  }
+  if (description.length > MAX_FIELD_LENGTH) {
+    return res.status(400).json({ ok: false, error: `description supera el máximo de ${MAX_FIELD_LENGTH} caracteres.` });
+  }
+  if (event_type && !EVENT_TYPES.includes(event_type)) {
+    return res.status(400).json({ ok: false, error: `event_type inválido. Valores: ${EVENT_TYPES.join(', ')}.` });
+  }
+
+  const event = createEvent({ ...req.body, source: req.body.source || 'api' });
+  res.status(201).json({ ok: true, event });
+});
+
+app.patch('/api/events/:id', writeLimiter, requireAuth, (req, res) => {
+  const id = Number(req.params.id);
+  const fields = req.body ?? {};
+
+  if (fields.status && !EVENT_STATUSES.includes(fields.status)) {
+    return res.status(400).json({ ok: false, error: `status inválido. Valores: ${EVENT_STATUSES.join(', ')}.` });
+  }
+  if (fields.event_type && !EVENT_TYPES.includes(fields.event_type)) {
+    return res.status(400).json({ ok: false, error: `event_type inválido. Valores: ${EVENT_TYPES.join(', ')}.` });
+  }
+
+  const updated = updateEvent(id, fields);
+  if (!updated) {
+    return res.status(404).json({ ok: false, error: `No se encontró el evento con id: ${id}` });
+  }
+  res.json({ ok: true, event: updated });
+});
+
+app.get('/api/events', (req, res) => {
+  const { project, status } = req.query;
+  res.json({ ok: true, events: listEvents({ project, status }) });
+});
+
+app.get('/api/plic/ranking', (_req, res) => {
+  res.json({ ok: true, ranking: getRanking() });
 });
 
 app.get('/api/health', (_req, res) => {
