@@ -3,6 +3,7 @@
 const API_BASE = (window.TC_CONFIG?.backendUrl || '').replace(/\/$/, '');
 const MESSAGE_URL   = `${API_BASE}/api/message`;
 const KNOWLEDGE_URL = `${API_BASE}/api/knowledge`;
+const RANKING_URL   = `${API_BASE}/api/plic/ranking`;
 
 // Token de escritura. Se pide una vez y se guarda en localStorage.
 function getToken() {
@@ -167,6 +168,8 @@ async function sendMessage(autoSend = false) {
     if (data.ok) {
       chatMessages.appendChild(createSystemMessage(data.response, data.intent));
       responseText = data.response;
+      // El mensaje generó un evento PLIC: refrescar el ranking en vivo.
+      loadPlicRanking();
     } else {
       if (res.status === 401) localStorage.removeItem('TC_TOKEN');
       const msg = data.error || 'Hubo un problema procesando tu mensaje.';
@@ -319,6 +322,50 @@ async function loadLastDecision() {
 }
 
 loadLastDecision();
+
+// ── PLIC: cargar ranking de prioridades ──────────────
+async function loadPlicRanking() {
+  const el = document.getElementById('plicRanking');
+  if (!el) return;
+
+  try {
+    const res  = await fetch(RANKING_URL);
+    const data = await res.json();
+
+    el.innerHTML = '';
+
+    const top = data.ok && data.ranking ? data.ranking.top : [];
+    if (!top.length) {
+      const li = document.createElement('li');
+      li.textContent = 'Sin eventos abiertos. La Torre está estable.';
+      el.appendChild(li);
+      return;
+    }
+
+    for (const event of top.slice(0, 6)) {
+      const li = document.createElement('li');
+
+      const badge = document.createElement('span');
+      badge.className = `plic-badge plic-${(event.priority || 'P3').toLowerCase()}`;
+      badge.textContent = event.priority;
+      li.appendChild(badge);
+
+      const desc = document.createElement('span');
+      desc.className = 'plic-desc';
+      desc.textContent = event.description;
+      li.appendChild(desc);
+
+      el.appendChild(li);
+    }
+  } catch {
+    el.innerHTML = '';
+    const li = document.createElement('li');
+    li.textContent = 'No se pudo cargar el ranking.';
+    el.appendChild(li);
+  }
+}
+
+loadPlicRanking();
 
 // ── Input: auto-resize + keyboard ────────────────────
 chatInput.addEventListener('input', () => {

@@ -2,14 +2,15 @@
 
 - **PROYECTO_FUNCIONAL**: Torre de Control
 - **REPO_TECNICO**: szlapakariel-ux/torre-control
-- **Última actualización**: 2026-06-09
-- **Última orden cerrada**: MC-APP-1 — preparación de producción del app (backend + frontend) (ORD-20260609-01, PR #58)
-- **Operador del último ciclo**: Claude Code (`claude_code`)
-- **Rama destino del último ciclo**: `main` (vía PR #58, pendiente de merge)
-- **Archivo del último ciclo**: `.torre/revisiones/mc-app-1-preparacion-produccion-app.md`
+- **Última actualización**: 2026-06-12
+- **Última orden cerrada**: MC-PLIC-1 — Torre operativa bajo PLIC con cerebro de IA configurable (ORD-20260612-01)
+- **Operador del último ciclo**: Claude Code (`claude`)
+- **Rama destino del último ciclo**: `main` (vía rama `claude/zealous-sagan-fgrx25`, pendiente de PR/merge)
+- **Archivo del último ciclo**: `.torre/historial/2026-06-12_mc-plic-1-fable-operativa/`
 - **Gate de producción del app**: **DEVUELTO A AUTORIZACIÓN** — no APROBADO. Faltan auditor independiente, autorización explícita de Ariel y verificación de rollback. Ver el archivo del último ciclo.
 - **Orden activa**: NO (inbox en placeholder)
 - **EN_PROCESO_POR**: ninguno
+- **App con cerebro de IA**: el app ahora clasifica y responde con Claude (modelo configurable vía `TORRE_MODEL`, default `claude-haiku-4-5`), con fallback al clasificador por keywords. **Acción pendiente de Ariel**: configurar `ANTHROPIC_API_KEY` en Railway para activar la IA (sin ella, el app corre en modo keywords por diseño).
 - **ORDENES_REMOTAS_EN_VUELO**: 0
 - **Bloqueos**: ninguno
 - **MC-LOC-2 técnico**: NO habilitado (requiere orden explícita de Torre; ver saga location-tracking más abajo).
@@ -46,6 +47,7 @@
 - **Hasta MC-2**: backend y frontend sin cambios, cero dependencias, cero código tocado en MC-1 ni en la saga MC-LOC.
 - **MC-APP-1 (2026-06-09, ORD-20260609-01, PR #58)** — primer microciclo de la línea **MC-APP** (el app como producto técnico). Dejó el app desplegable: persistencia en SQLite (migración idempotente de los JSON legacy), config por entorno (`PORT`/`ALLOWED_ORIGIN`/`DATA_DIR`/`API_TOKEN`), CORS cerrado, auth Bearer en escrituras, helmet + rate limit + manejo de errores + apagado ordenado, frontend servido desde el backend, y artefactos de deploy (`Dockerfile`, `railway.toml`, `.dockerignore`, `.env.example`, `DEPLOY.md`, `.gitignore`); `node_modules` desversionado. **El gate de producción NO quedó aprobado** (ver más abajo). Detalle: `.torre/revisiones/mc-app-1-preparacion-produccion-app.md`.
 - **Deploy de preview y decisiones de producto (2026-06-09, post-MC-APP-1)** — Ariel desplegó el app en Railway desde la rama `claude/eager-fermat-vr2ee4` (URL `torre-control-production-3589.up.railway.app`), como decisión directa del dueño (el gate formal sigue pendiente). Build OK tras agregar build-tools al Dockerfile para compilar `better-sqlite3` (commit `b391cc8`). Decisiones de Ariel: (1) **lectura pública** (los `GET` siguen sin token; escritura sigue con token); (2) **datos demo fuera de producción** — se quitaron `backend/data/messages.json` y `knowledge.json` del repo; prod arranca con base vacía.
+- **MC-PLIC-1 (2026-06-12, ORD-20260612-01)** — primer microciclo de la línea **MC-PLIC**. Dejó la Torre operativa bajo PLIC: (1) lógica PLIC registrada como Capa 2 vigente en `.torre/plic/` (definición, cierre punto 1, protocolo universal V0.2 con fórmula de score, ranking inicial) y anotada en `historico.md`; (2) motor PLIC en el backend — tabla `events`, score/priority (`plicScore.js`), store (`plicStore.js`), endpoints `POST/PATCH /api/events`, `GET /api/events`, `GET /api/plic/ranking`; (3) cerebro de IA configurable (`torreBrain.js`) que clasifica/responde/estima PLIC con Claude (modelo por `TORRE_MODEL`, default Haiku) y **fallback** al clasificador por keywords; cada mensaje del chat genera un evento PLIC; (4) ranking PLIC vivo en el sidebar del frontend. Dependencia nueva `@anthropic-ai/sdk` (autorizada por la orden). Verificado: camino keywords OK, degradación con key inválida OK (401 → keywords, sin 500), CRUD de eventos y cierre OK. **No** se tocó la automatización del sistema postal. Detalle: `.torre/historial/2026-06-12_mc-plic-1-fable-operativa/`.
 
 ## Sugerencias acumuladas para próximas órdenes
 
