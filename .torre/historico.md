@@ -60,3 +60,18 @@ Documentos detectados en filesystem local que **no se incorporan al repo en MC-1
 ## Modificación de esta lista
 
 Esta lista es vigente hasta que Torre emita un microciclo que la modifique. Agregar documentos a la lista, sacarlos, o decidir el archivado físico requiere microciclo documental aparte.
+
+---
+
+## Anexo — Documentos PLIC entran como Capa 2 vigente (MC-PLIC-1)
+
+> **Microciclo:** ORD-20260612-01 (MC-PLIC-1) — 2026-06-12 — Autoridad: Torre.
+
+A partir de MC-PLIC-1, la lógica **PLIC** (*Power-Law-based Inference and Coordination*) queda registrada como **normativa vigente, Capa 2 (operativa)** según `jerarquia_documental.md`. Los documentos:
+
+- [`plic/00_definicion_plic.md`](./plic/00_definicion_plic.md) — definición, mantra, regla rectora.
+- [`plic/01_cierre_punto_1.md`](./plic/01_cierre_punto_1.md) — relevamiento forense (Etapa 1).
+- [`plic/02_protocolo_torre_universal_v0_2.md`](./plic/02_protocolo_torre_universal_v0_2.md) — carriles, roles, escalas y fórmula de score (fuente normativa del motor).
+- [`plic/ranking_inicial.md`](./plic/ranking_inicial.md) — ranking semilla (Etapa 2).
+
+Estos documentos **no** son históricos subordinados: son la capa de priorización activa de la Torre, implementada en el backend del app (`backend/services/plicScore.js`, `plicStore.js`, `torreBrain.js`). Ante conflicto con un documento de Capa 1 (`protocolo_principal.md`), prevalece Capa 1; ante conflicto con documentos históricos de este archivo, prevalece PLIC.
