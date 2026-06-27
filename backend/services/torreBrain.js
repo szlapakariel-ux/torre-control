@@ -110,7 +110,7 @@ async function analyzeMessage({ message, project }) {
         { role: 'user', content: `Proyecto: ${project ?? 'general'}\nMensaje: ${message}` },
       ],
       output_config: {
-        effort: 'low',
+
         format: { type: 'json_schema', schema: TORRE_SCHEMA },
       },
     };
