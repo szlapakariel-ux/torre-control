@@ -219,6 +219,44 @@ app.get('/api/health', (_req, res) => {
   res.json({ ok: true, status: 'Torre de Control backend activo.' });
 });
 
+// ── Voz JARVIS (ElevenLabs) ──────────────────────────────────────────────────
+
+const { synthesize: elevenSynthesize, isConfigured: elevenConfigured } = require('./services/elevenLabsVoice');
+
+const voiceLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { ok: false, error: 'Demasiadas solicitudes de voz. Probá en un minuto.' },
+});
+
+// GET /api/voz/status — sin auth, solo informa si está configurado
+app.get('/api/voz/status', (_req, res) => {
+    res.json({ ok: true, configured: elevenConfigured() });
+});
+
+// POST /api/voz — requiere auth, devuelve audio/mpeg
+app.post('/api/voz', writeLimiter, voiceLimiter, requireAuth, async (req, res) => {
+    const { text } = req.body || {};
+    if (!text || typeof text !== 'string' || !text.trim()) {
+          return res.status(400).json({ ok: false, error: 'Falta el campo "text" en el body.' });
+    }
+    if (text.length > 500) {
+          return res.status(400).json({ ok: false, error: 'El texto no puede superar los 500 caracteres.' });
+    }
+    try {
+          const audioBuffer = await elevenSynthesize(text.trim());
+          res.setHeader('Content-Type', 'audio/mpeg');
+          res.setHeader('Content-Length', audioBuffer.length);
+          res.setHeader('Cache-Control', 'no-store');
+          res.send(audioBuffer);
+    } catch (err) {
+          console.error('Error en síntesis de voz ElevenLabs:', err.message);
+          res.status(502).json({ ok: false, error: err.message });
+    }
+});
+
 // ── Manejo de errores global ──────────────────────────
 // Captura errores de CORS, JSON malformado y cualquier excepción de un handler,
 // para que una request inválida no tire el proceso.
