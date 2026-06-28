@@ -3,7 +3,7 @@
 /**
  * elevenLabsVoice.js
  * Servicio de síntesis de voz via ElevenLabs API.
- * Expone synthesize(text) -> Buffer (audio/mpeg)
+ * Expone synthesizeToBase64(text) -> string (base64)
  *
  * Variables de entorno requeridas:
  *   ELEVENLABS_API_KEY  — clave de la API de ElevenLabs
@@ -12,7 +12,7 @@
 
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY || '';
 const ELEVENLABS_VOICE_ID = process.env.ELEVENLABS_VOICE_ID || '';
-const ELEVENLABS_MODEL = process.env.ELEVENLABS_MODEL || 'eleven_multilingual_v2';
+const ELEVENLABS_MODEL = process.env.ELEVENLABS_MODEL || 'eleven_turbo_v2_5';
 
 /**
  * Verifica si el servicio está configurado.
@@ -24,56 +24,64 @@ function isConfigured() {
 
 /**
  * Convierte texto a audio MP3 usando ElevenLabs Text-to-Speech API.
- * @param {string} text — Texto a sintetizar (máx. 500 chars recomendado)
- * @returns {Promise<Buffer>} Buffer con el audio en formato MP3
+ * Retorna el audio como string base64.
+ * @param {string} text — Texto a sintetizar
+ * @returns {Promise<string>} Base64 del audio MP3, o string vacío si no está configurado o hay error
  */
-async function synthesize(text) {
+async function synthesizeToBase64(text) {
   if (!isConfigured()) {
-    throw new Error(
-                          'ElevenLabs no configurado. Definí ELEVENLABS_API_KEY y ELEVENLABS_VOICE_ID en las variables de entorno.'
-                        );
+    console.warn('TTS: ELEVENLABS_API_KEY o ELEVENLABS_VOICE_ID no configurados. Retornando vacío.');
+    return '';
   }
 
   if (!text || typeof text !== 'string') {
-    throw new Error('El texto a sintetizar es inválido o está vacío.');
+    console.warn('TTS: texto a sintetizar es inválido o está vacío.');
+    return '';
   }
 
-  const trimmed = text.trim().slice(0, 2500);
+  try {
+    const trimmed = text.trim().slice(0, 2500);
 
-  const url = `https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_VOICE_ID}`;
+    const url = `https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_VOICE_ID}`;
 
-  const response = await fetch(url, {
-                                      method: 'POST',
-                                      headers: {
-                                        'xi-api-key': ELEVENLABS_API_KEY,
-                                        'Content-Type': 'application/json',
-                                        'Accept': 'audio/mpeg',
-                                      },
-                                      body: JSON.stringify({
-                                                                 text: trimmed,
-                                                                 model_id: ELEVENLABS_MODEL,
-                                                                 voice_settings: {
-                                                                   stability: 0.5,
-                                                                   similarity_boost: 0.75,
-                                                                   style: 0.0,
-                                                                   use_speaker_boost: true,
-                                                                 },
-                                                               }),
-                                    });
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'xi-api-key': ELEVENLABS_API_KEY,
+        'Content-Type': 'application/json',
+        'Accept': 'audio/mpeg',
+      },
+      body: JSON.stringify({
+        text: trimmed,
+        model_id: ELEVENLABS_MODEL,
+        voice_settings: {
+          stability: 0.5,
+          similarity_boost: 0.85,
+          style: 0.0,
+          use_speaker_boost: true,
+        },
+      }),
+    });
 
-  if (!response.ok) {
-    let detail = '';
-    try {
-      const err = await response.json();
-      detail = err?.detail?.message || JSON.stringify(err);
-    } catch (_) {
-      detail = await response.text();
+    if (!response.ok) {
+      let detail = '';
+      try {
+        const err = await response.json();
+        detail = err?.detail?.message || JSON.stringify(err);
+      } catch (_) {
+        detail = await response.text();
+      }
+      console.warn(`TTS error ${response.status}: ${detail}`);
+      return '';
     }
-    throw new Error(`ElevenLabs API error ${response.status}: ${detail}`);
-  }
 
-  const arrayBuffer = await response.arrayBuffer();
-  return Buffer.from(arrayBuffer);
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    return buffer.toString('base64');
+  } catch (error) {
+    console.warn('TTS error:', error.message);
+    return '';
+  }
 }
 
-module.exports = { synthesize, isConfigured };
+module.exports = { synthesizeToBase64, isConfigured };
