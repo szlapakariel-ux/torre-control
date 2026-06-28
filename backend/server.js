@@ -25,7 +25,15 @@ const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGIN || 'http://localhost:3001,ht
 const API_TOKEN = process.env.API_TOKEN || '';
 
 app.set('trust proxy', 1);
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      imgSrc: ["'self'", "data:"],
+      mediaSrc: ["'self'", "blob:"],
+    },
+  },
+}));
 app.use(cors({
   origin(origin, cb) {
     // Permite herramientas sin Origin (curl, health checks) y orígenes en lista.
