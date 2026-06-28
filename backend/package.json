@@ -1,21 +1,22 @@
 {
-  "name": "torre-control-backend",
-  "version": "1.0.0",
-  "description": "Backend mínimo para Torre de Control",
-  "main": "server.js",
-  "engines": {
-    "node": ">=20"
-  },
-  "scripts": {
-    "start": "node server.js",
-    "dev": "node --watch server.js"
-  },
-  "dependencies": {
-    "@anthropic-ai/sdk": "^0.69.0",
-    "better-sqlite3": "^12.10.0",
-    "cors": "^2.8.5",
-    "express": "^4.19.2",
-    "express-rate-limit": "^8.5.2",
-    "helmet": "^8.2.0"
-  }
+    "name": "torre-control-backend",
+    "version": "1.0.0",
+    "description": "Backend mínimo para Torre de Control",
+    "main": "server.js",
+    "engines": {
+          "node": ">=20"
+    },
+    "scripts": {
+          "start": "node server.js",
+          "dev": "node --watch server.js"
+    },
+    "dependencies": {
+          "@anthropic-ai/sdk": "^0.69.0",
+          "better-sqlite3": "^12.10.0",
+          "cors": "^2.8.5",
+          "elevenlabs": "^0.17.0",
+          "express": "^4.19.2",
+          "express-rate-limit": "^8.5.2",
+          "helmet": "^8.2.0"
+    }
 }
