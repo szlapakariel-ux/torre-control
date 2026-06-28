@@ -6,6 +6,7 @@ const rateLimit = require('express-rate-limit');
 const { saveMessage } = require('./services/storage');
 const { readKnowledge, saveKnowledgeItem, updateKnowledgeItem } = require('./services/knowledgeStore');
 const { analyzeMessage } = require('./services/torreBrain');
+const { synthesizeToBase64 } = require('./services/elevenLabsVoice');
 const { createEvent, listEvents, updateEvent, getRanking } = require('./services/plicStore');
 const { EVENT_TYPES, EVENT_STATUSES } = require('./services/plicScore');
 
@@ -80,6 +81,9 @@ app.post('/api/message', writeLimiter, requireAuth, async (req, res, next) => {
     // error de la API; siempre devuelve una clasificación (IA o keywords).
     const result = await analyzeMessage({ message: text, project });
 
+    // Generar audio de la respuesta con ElevenLabs (voz del primer Jarvis)
+    const audioBase64 = await synthesizeToBase64(result.response);
+
     const messageId = saveMessage({
       project,
       message:  text,
@@ -113,6 +117,7 @@ app.post('/api/message', writeLimiter, requireAuth, async (req, res, next) => {
       intent: result.intent,
       priority: result.priority,
       response: result.response,
+      audio: audioBase64 || null,
       nextStep: result.nextStep,
       plic: result.plic,
       source: result.source,

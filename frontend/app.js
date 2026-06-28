@@ -150,6 +150,7 @@ async function sendMessage(autoSend = false) {
   scrollToBottom();
 
   let responseText = '';
+  let audioBase64 = null;
 
   try {
     const res = await fetch(MESSAGE_URL, {
@@ -168,6 +169,7 @@ async function sendMessage(autoSend = false) {
     if (data.ok) {
       chatMessages.appendChild(createSystemMessage(data.response, data.intent));
       responseText = data.response;
+      audioBase64 = data.audio;
       // El mensaje generó un evento PLIC: refrescar el ranking en vivo.
       loadPlicRanking();
     } else {
@@ -188,7 +190,7 @@ async function sendMessage(autoSend = false) {
 
   if (jarviszEnabled && responseText) {
     setState('speaking');
-    speak(responseText, () => {
+    speak(responseText, audioBase64, () => {
       if (jarviszEnabled) startListening();
       else setState('idle');
     });
@@ -198,7 +200,46 @@ async function sendMessage(autoSend = false) {
 }
 
 // ── Speech Synthesis (TTS) ────────────────────────────
-function speak(text, onEnd) {
+let currentAudio = null;
+
+function speak(text, audioBase64, onEnd) {
+  if (audioBase64) {
+    if (currentAudio) {
+      currentAudio.pause();
+      currentAudio = null;
+    }
+
+    try {
+      const binaryString = atob(audioBase64);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      const blob = new Blob([bytes], { type: 'audio/mpeg' });
+      const url = URL.createObjectURL(blob);
+
+      currentAudio = new Audio(url);
+      currentAudio.onended = () => {
+        URL.revokeObjectURL(url);
+        currentAudio = null;
+        onEnd?.();
+      };
+      currentAudio.onerror = () => {
+        URL.revokeObjectURL(url);
+        currentAudio = null;
+        onEnd?.();
+      };
+      currentAudio.play();
+    } catch (e) {
+      console.warn('Error reproduciendo audio ElevenLabs:', e);
+      speakViaNavigator(text, onEnd);
+    }
+  } else {
+    speakViaNavigator(text, onEnd);
+  }
+}
+
+function speakViaNavigator(text, onEnd) {
   if (!hasTTS) { onEnd?.(); return; }
   speechSynthesis.cancel();
 
