@@ -9,6 +9,13 @@ const { analyzeMessage } = require('./services/torreBrain');
 const { synthesizeToBase64 } = require('./services/elevenLabsVoice');
 const { createEvent, listEvents, updateEvent, getRanking } = require('./services/plicStore');
 const { EVENT_TYPES, EVENT_STATUSES } = require('./services/plicScore');
+const {
+  registerAgent, updateHeartbeat, getAgentStatus,
+  startNewCycle, readAgentWindow, writeAgentWindow,
+  screenshotAgentWindow, registerWindowOnAgent,
+  getCycleHistory, receiveCycleResult,
+} = require('./services/orchestrator');
+const { initCycleTable } = require('./services/cycleStore');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -232,6 +239,87 @@ app.get('/api/health', (_req, res) => {
   res.json({ ok: true, status: 'Torre de Control backend activo.' });
 });
 
+// ── Orquestador: agente local ─────────────────────────
+
+// El agente local se registra al arrancar
+app.post('/api/agent/register', (req, res) => {
+  const info = registerAgent(req.body);
+  res.json({ ok: true, agent: info });
+});
+
+// Heartbeat del agente (cada 30s)
+app.post('/api/agent/heartbeat', (req, res) => {
+  updateHeartbeat(req.body);
+  res.json({ ok: true });
+});
+
+// Estado del agente (para Torre UI)
+app.get('/api/agent/status', (_req, res) => {
+  res.json({ ok: true, agent: getAgentStatus() });
+});
+
+// Registrar ventana nueva en el agente en caliente
+app.post('/api/agent/windows', writeLimiter, requireAuth, async (req, res, next) => {
+  try {
+    const { name, type, urlPattern } = req.body || {};
+    if (!name || !type) return res.status(400).json({ ok: false, error: 'Faltan name y type.' });
+    const result = await registerWindowOnAgent(name, type, urlPattern);
+    res.json({ ok: true, result });
+  } catch (err) { next(err); }
+});
+
+// ── Orquestador: ciclos ───────────────────────────────
+
+// Iniciar un ciclo nuevo (source → target → notify)
+app.post('/api/cycles', writeLimiter, requireAuth, async (req, res, next) => {
+  try {
+    const { source, target, notify, prompt } = req.body || {};
+    if (!source || !target) return res.status(400).json({ ok: false, error: 'Faltan source y target.' });
+    const cycle = await startNewCycle({ source, target, notify, prompt });
+    res.status(201).json({ ok: true, cycle });
+  } catch (err) { next(err); }
+});
+
+// Historial de ciclos
+app.get('/api/cycles', (_req, res) => {
+  const limit = Math.min(parseInt(_req.query.limit || '20'), 100);
+  res.json({ ok: true, cycles: getCycleHistory(limit) });
+});
+
+// El agente local reporta resultado de ciclo
+app.post('/api/cycles/result', (req, res) => {
+  receiveCycleResult(req.body);
+  res.json({ ok: true });
+});
+
+// Acciones directas sobre ventanas (sin iniciar ciclo completo)
+app.post('/api/agent/read', writeLimiter, requireAuth, async (req, res, next) => {
+  try {
+    const { window: win } = req.body || {};
+    if (!win) return res.status(400).json({ ok: false, error: 'Falta window.' });
+    const result = await readAgentWindow(win);
+    res.json({ ok: true, ...result });
+  } catch (err) { next(err); }
+});
+
+app.post('/api/agent/write', writeLimiter, requireAuth, async (req, res, next) => {
+  try {
+    const { window: win, text, submit } = req.body || {};
+    if (!win || !text) return res.status(400).json({ ok: false, error: 'Faltan window y text.' });
+    const result = await writeAgentWindow(win, text, submit ?? false);
+    res.json({ ok: true, ...result });
+  } catch (err) { next(err); }
+});
+
+app.post('/api/agent/screenshot', writeLimiter, requireAuth, async (req, res, next) => {
+  try {
+    const { window: win } = req.body || {};
+    if (!win) return res.status(400).json({ ok: false, error: 'Falta window.' });
+    const result = await screenshotAgentWindow(win);
+    res.json({ ok: true, image: result.image });
+  } catch (err) { next(err); }
+});
+
 // ── Voz JARVIS (ElevenLabs) ──────────────────────────────────────────────────
 
 const { synthesize: elevenSynthesize, isConfigured: elevenConfigured } = require('./services/elevenLabsVoice');
@@ -286,6 +374,9 @@ app.use((err, _req, res, _next) => {
   console.error('Error no controlado:', err);
   res.status(500).json({ ok: false, error: 'Error interno del servidor.' });
 });
+
+// Inicializar tablas adicionales
+initCycleTable();
 
 const server = app.listen(PORT, () => {
   console.log(`Torre de Control backend → puerto ${PORT}`);
