@@ -598,3 +598,57 @@ html, body {
     padding-right: 16px;
   }
 }
+
+/* ── Acciones rápidas ──────────────────────────────── */
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.action-btn {
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.action-btn:hover {
+  background: var(--bg-card);
+  border-color: var(--accent);
+}
+
+.action-btn-primary {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+.action-btn-primary:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* ── Panel de ciclo ────────────────────────────────── */
+.cycle-status {
+  margin-bottom: 8px;
+}
+
+.cycle-step {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.cycle-summary {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin-top: 4px;
+}

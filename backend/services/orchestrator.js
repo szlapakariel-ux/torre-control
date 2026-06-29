@@ -9,6 +9,28 @@
 
 const { WebSocket } = require('ws');
 const { createCycle, startCycle, completeCycle, failCycle, getRecentCycles } = require('./cycleStore');
+const Anthropic = require('@anthropic-ai/sdk');
+
+async function summarizeCycle(prompt, result) {
+  if (!process.env.ANTHROPIC_API_KEY) return null;
+  try {
+    const client = new Anthropic();
+    const msg = await client.messages.create({
+      model: process.env.TORRE_MODEL || 'claude-haiku-4-5-20251001',
+      max_tokens: 80,
+      messages: [{
+        role: 'user',
+        content: `Resumí en UNA sola oración corta qué se logró. Sin tecnicismos, como si se lo contaras a alguien que no sabe de tecnología. Sin puntos al final.
+
+Lo que se pidió: ${String(prompt).slice(0, 300)}
+Lo que se hizo: ${String(result).slice(0, 300)}`,
+      }],
+    });
+    return msg.content[0].text.trim();
+  } catch {
+    return null;
+  }
+}
 
 // Referencia al WebSocket del agente local (se setea cuando el agente se conecta)
 let agentSocket = null;
@@ -183,13 +205,14 @@ function getCycleHistory(limit = 20) {
 /**
  * Recibe el resultado de un ciclo completado (llamado desde POST /api/cycles/result).
  */
-function receiveCycleResult({ cycleId, result, error }) {
+async function receiveCycleResult({ cycleId, prompt, result, error }) {
   if (error) {
     failCycle(cycleId, error);
     console.log(`[Orchestrator] Ciclo ${cycleId} falló: ${error}`);
   } else {
-    completeCycle(cycleId, result);
-    console.log(`[Orchestrator] Ciclo ${cycleId} completado`);
+    const summary = await summarizeCycle(prompt, result);
+    completeCycle(cycleId, result, summary);
+    console.log(`[Orchestrator] Ciclo ${cycleId} completado: ${summary || '(sin resumen)'}`);
   }
 }
 

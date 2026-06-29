@@ -95,10 +95,38 @@
         </div>
       </div>
 
+      <!-- ACCIONES RÁPIDAS -->
       <div class="sidebar-card">
-        <div class="sidebar-card-label">Prioridades (PLIC)</div>
+        <div class="sidebar-card-label">Acciones rápidas</div>
+        <div class="action-buttons">
+          <button class="action-btn" id="btnReadGpt" title="Ver qué tiene GPT abierto">
+            👁 Leer GPT
+          </button>
+          <button class="action-btn" id="btnReadClaude" title="Ver qué tiene Claude abierto">
+            👁 Leer Claude
+          </button>
+          <button class="action-btn action-btn-primary" id="btnCycleGptClaude" title="Tomar lo de GPT y pasarlo a Claude">
+            🔄 GPT → Claude
+          </button>
+          <button class="action-btn" id="btnScreenshot" title="Sacar foto de lo que tiene GPT">
+            📷 Screenshot GPT
+          </button>
+        </div>
+      </div>
+
+      <!-- ÚLTIMO CICLO -->
+      <div class="sidebar-card" id="lastCycleCard" style="display:none">
+        <div class="sidebar-card-label">Último ciclo</div>
+        <div class="cycle-status" id="cycleStatus">
+          <span class="cycle-step" id="cycleStep">⏳ Iniciando...</span>
+        </div>
+        <div class="cycle-summary" id="cycleSummary"></div>
+      </div>
+
+      <div class="sidebar-card">
+        <div class="sidebar-card-label">Prioridades</div>
         <ul class="pending-list" id="plicRanking">
-          <li>Cargando ranking...</li>
+          <li>Cargando...</li>
         </ul>
       </div>
 

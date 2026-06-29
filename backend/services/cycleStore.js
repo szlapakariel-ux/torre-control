@@ -15,6 +15,7 @@ function initCycleTable() {
       prompt      TEXT,
       result      TEXT,
       status      TEXT NOT NULL DEFAULT 'pending',
+      summary     TEXT,
       created_at  INTEGER NOT NULL,
       completed_at INTEGER,
       error       TEXT
@@ -34,12 +35,12 @@ function startCycle(id) {
   db.prepare(`UPDATE cycles SET status = 'running' WHERE id = ?`).run(id);
 }
 
-function completeCycle(id, result) {
+function completeCycle(id, result, summary) {
   db.prepare(`
     UPDATE cycles
-    SET status = 'completed', result = @result, completed_at = @completed_at
+    SET status = 'completed', result = @result, summary = @summary, completed_at = @completed_at
     WHERE id = @id
-  `).run({ id, result: typeof result === 'string' ? result : JSON.stringify(result), completed_at: Date.now() });
+  `).run({ id, result: typeof result === 'string' ? result : JSON.stringify(result), summary: summary || null, completed_at: Date.now() });
 }
 
 function failCycle(id, error) {

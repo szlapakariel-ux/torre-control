@@ -422,3 +422,133 @@ chatInput.addEventListener('keydown', (e) => {
 });
 
 sendButton.addEventListener('click', () => sendMessage());
+
+// ── Acciones rápidas ──────────────────────────────────
+
+async function callAgent(endpoint, body) {
+  const res = await fetch(`${API_BASE}${endpoint}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify(body),
+  });
+  return res.json();
+}
+
+function showCycleCard(step, summary) {
+  const card    = document.getElementById('lastCycleCard');
+  const stepEl  = document.getElementById('cycleStep');
+  const sumEl   = document.getElementById('cycleSummary');
+  card.style.display = 'block';
+  if (step)    stepEl.textContent   = step;
+  if (summary) sumEl.textContent    = summary;
+}
+
+function addSystemMsg(text) {
+  chatMessages.appendChild(createSystemMessage(text, null));
+  scrollToBottom();
+}
+
+// Leer GPT
+document.getElementById('btnReadGpt')?.addEventListener('click', async () => {
+  addSystemMsg('👁 Leyendo lo que tiene GPT abierto...');
+  try {
+    const data = await callAgent('/api/agent/read', { window: 'gpt' });
+    if (data.ok && data.text) {
+      addSystemMsg(`📋 GPT dice:\n\n"${data.text.slice(0, 400)}${data.text.length > 400 ? '...' : ''}"`);
+    } else {
+      addSystemMsg('⚠️ No pude leer GPT. ¿Está abierto en el navegador de la Torre?');
+    }
+  } catch {
+    addSystemMsg('⚠️ El agente local no responde.');
+  }
+});
+
+// Leer Claude
+document.getElementById('btnReadClaude')?.addEventListener('click', async () => {
+  addSystemMsg('👁 Leyendo lo que tiene Claude abierto...');
+  try {
+    const data = await callAgent('/api/agent/read', { window: 'claude' });
+    if (data.ok && data.text) {
+      addSystemMsg(`📋 Claude dice:\n\n"${data.text.slice(0, 400)}${data.text.length > 400 ? '...' : ''}"`);
+    } else {
+      addSystemMsg('⚠️ No pude leer Claude. ¿Está abierto en el navegador de la Torre?');
+    }
+  } catch {
+    addSystemMsg('⚠️ El agente local no responde.');
+  }
+});
+
+// Screenshot GPT
+document.getElementById('btnScreenshot')?.addEventListener('click', async () => {
+  addSystemMsg('📷 Sacando foto de GPT...');
+  try {
+    const data = await callAgent('/api/agent/screenshot', { window: 'gpt' });
+    if (data.ok && data.image) {
+      const img = document.createElement('img');
+      img.src = `data:image/png;base64,${data.image}`;
+      img.style.cssText = 'max-width:100%;border-radius:8px;margin-top:8px;';
+      const wrapper = createSystemMessage('📷 Así está GPT ahora:', null);
+      wrapper.querySelector('.message-bubble').appendChild(img);
+      chatMessages.appendChild(wrapper);
+      scrollToBottom();
+    } else {
+      addSystemMsg('⚠️ No pude sacar el screenshot.');
+    }
+  } catch {
+    addSystemMsg('⚠️ El agente local no responde.');
+  }
+});
+
+// Ciclo GPT → Claude
+document.getElementById('btnCycleGptClaude')?.addEventListener('click', async () => {
+  showCycleCard('⏳ Iniciando ciclo...', '');
+  addSystemMsg('🔄 Arrancando ciclo GPT → Claude...');
+
+  try {
+    const data = await callAgent('/api/cycles', { source: 'gpt', target: 'claude', notify: 'whatsapp' });
+    if (!data.ok) {
+      addSystemMsg(`⚠️ No se pudo iniciar el ciclo: ${data.error}`);
+      return;
+    }
+
+    const cycleId = data.cycle.id;
+    showCycleCard('⏳ Leyendo GPT...', '');
+
+    // Polling del ciclo hasta que termine
+    const poll = setInterval(async () => {
+      try {
+        const status = await fetch(`${API_BASE}/api/cycles?limit=5`, { headers: authHeaders() });
+        const json   = await status.json();
+        const cycle  = json.cycles?.find(c => c.id === cycleId);
+        if (!cycle) return;
+
+        if (cycle.status === 'running') {
+          showCycleCard('⏳ Claude está procesando...', '');
+        }
+
+        if (cycle.status === 'completed') {
+          clearInterval(poll);
+          const summary = cycle.summary || 'Ciclo completado.';
+          showCycleCard('✅ Listo', summary);
+          addSystemMsg(`✅ Ciclo completado\n\n${summary}`);
+          loadPlicRanking();
+        }
+
+        if (cycle.status === 'failed') {
+          clearInterval(poll);
+          showCycleCard('❌ Falló', cycle.error || 'Error desconocido');
+          addSystemMsg(`❌ El ciclo falló: ${cycle.error || 'error desconocido'}`);
+        }
+      } catch { /* silenciar errores de polling */ }
+    }, 3000);
+
+    // Timeout máximo 5 minutos
+    setTimeout(() => {
+      clearInterval(poll);
+      showCycleCard('⏱ Tiempo agotado', 'El ciclo tardó más de lo esperado');
+    }, 300000);
+
+  } catch {
+    addSystemMsg('⚠️ El agente local no responde. ¿Está corriendo jarvis-local-agent?');
+  }
+});
