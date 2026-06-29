@@ -542,11 +542,11 @@ document.getElementById('btnCycleGptClaude')?.addEventListener('click', async ()
       } catch { /* silenciar errores de polling */ }
     }, 3000);
 
-    // Timeout máximo 5 minutos
+    // Timeout máximo 30 minutos (loop puede tener varias iteraciones)
     setTimeout(() => {
       clearInterval(poll);
-      showCycleCard('⏱ Tiempo agotado', 'El ciclo tardó más de lo esperado');
-    }, 300000);
+      showCycleCard('⏱ Ciclo largo en curso', 'Revisá el agente local si tardó demasiado');
+    }, 1800000);
 
   } catch {
     addSystemMsg('⚠️ El agente local no responde. ¿Está corriendo jarvis-local-agent?');
