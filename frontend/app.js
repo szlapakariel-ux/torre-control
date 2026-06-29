@@ -523,7 +523,8 @@ document.getElementById('btnCycleGptClaude')?.addEventListener('click', async ()
         if (!cycle) return;
 
         if (cycle.status === 'running') {
-          showCycleCard('⏳ Claude está procesando...', '');
+          const mins = Math.round((Date.now() - new Date(cycle.created_at).getTime()) / 60000);
+          showCycleCard(`⏳ Ciclo en curso (${mins} min)`, 'GPT ↔ Claude trabajando — no tocar');
         }
 
         if (cycle.status === 'completed') {
