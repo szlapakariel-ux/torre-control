@@ -6,6 +6,7 @@ const rateLimit = require('express-rate-limit');
 const { saveMessage } = require('./services/storage');
 const { readKnowledge, saveKnowledgeItem, updateKnowledgeItem } = require('./services/knowledgeStore');
 const { analyzeMessage } = require('./services/torreBrain');
+const { handleScreenMessage } = require('./services/screenCommand');
 const { synthesizeToBase64 } = require('./services/elevenLabsVoice');
 const { createEvent, listEvents, updateEvent, getRanking } = require('./services/plicStore');
 const { EVENT_TYPES, EVENT_STATUSES } = require('./services/plicScore');
@@ -92,6 +93,31 @@ app.post('/api/message', writeLimiter, requireAuth, async (req, res, next) => {
     }
 
     const text = message.trim();
+
+    // ¿Es una orden de pantalla (leer/escribir GPT, Claude, etc.)? La maneja
+    // JarviSZ vía el agente local. Si no lo es, sigue el flujo normal de chat.
+    const screen = await handleScreenMessage(text);
+    if (screen.handled) {
+      const audioBase64 = await synthesizeToBase64(screen.response);
+      const messageId = saveMessage({
+        project, message: text, intent: 'tarea', priority: 'media',
+        response: screen.response, nextStep: '',
+      });
+      return res.json({
+        ok: true,
+        project: project ?? null,
+        mode: mode ?? 'pensar',
+        intent: 'tarea',
+        priority: 'media',
+        response: screen.response,
+        audio: audioBase64 || null,
+        nextStep: '',
+        plic: null,
+        source: 'screen-command',
+        messageId,
+      });
+    }
+
     // analyzeMessage tiene fallback interno: nunca lanza por falta de key o
     // error de la API; siempre devuelve una clasificación (IA o keywords).
     const result = await analyzeMessage({ message: text, project });
