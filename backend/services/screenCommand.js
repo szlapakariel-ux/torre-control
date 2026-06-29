@@ -21,6 +21,7 @@ const KNOWN_WINDOWS = ['gpt', 'claude', 'gemini', 'grok', 'whatsapp', 'figma'];
 
 // Estado conversacional en memoria (un solo usuario: Ariel).
 let pendingWrite = null; // { window, text }
+let pendingCycle = null; // { source, target, notify }
 let lastRead = null;     // { window, text }
 
 let client = null;
@@ -37,7 +38,7 @@ const SCHEMA = {
   type: 'object',
   additionalProperties: false,
   properties: {
-    kind:   { type: 'string', enum: ['read', 'write', 'confirm', 'cancel', 'detail', 'status', 'none'] },
+    kind:   { type: 'string', enum: ['read', 'write', 'confirm', 'cancel', 'detail', 'status', 'cycle', 'none'] },
     window: { type: 'string', description: `Una de: ${KNOWN_WINDOWS.join(', ')} — o vacío si no aplica.` },
     text:   { type: 'string', description: 'Texto exacto a escribir (solo para write). Vacío si no aplica.' },
   },
@@ -49,10 +50,11 @@ function buildSystem(ctx) {
 
 - "read": Ariel quiere saber qué hace/dice una pantalla. Ej: "qué está haciendo Claude", "qué dijo GPT", "leé Claude", "fijate GPT".
 - "write": Ariel ordena escribir un texto en una pantalla. Ej: "decile a GPT que se olvidó el prompt", "escribí en Claude: continuá", "mandale a GPT que pare". Extraé el texto EXACTO a escribir en "text" (sin el verbo de orden; el mensaje tal como debe verse en la pantalla).
-- "confirm": Ariel confirma un envío pendiente. Ej: "sí", "dale", "mandá", "hacelo", "confirmo". ${ctx.hasPendingWrite ? 'HAY un envío pendiente.' : 'NO hay envío pendiente, así que casi nunca uses confirm.'}
+- "confirm": Ariel confirma algo pendiente (un envío o un ciclo a punto de arrancar). Ej: "sí", "dale", "mandá", "hacelo", "confirmo". ${(ctx.hasPendingWrite || ctx.hasPendingCycle) ? 'HAY algo pendiente de confirmar.' : 'NO hay nada pendiente, así que casi nunca uses confirm.'}
 - "cancel": Ariel cancela el envío pendiente. Ej: "no", "cancelá", "dejá", "pará".
 - "detail": Ariel pide el texto completo de la última lectura. Ej: "dame el texto completo", "el literal", "mostrame todo". ${ctx.hasLastRead ? 'HAY una lectura previa.' : 'NO hay lectura previa.'}
 - "status": Ariel pregunta por el ESTADO del sistema/ciclo/agente. Ej: "por qué el ciclo está parado", "qué pasa con el ciclo", "está andando el agente", "qué onda con el ciclo", "por qué no arranca", "cómo viene todo".
+- "cycle": Ariel ORDENA arrancar/iniciar un ciclo entre las pantallas. Ej: "arrancá el ciclo", "iniciá el ciclo", "empezá el loop GPT a Claude", "dale arrancá". (NO confundir con preguntar por el estado: eso es status.)
 - "none": cualquier otra cosa (charla normal, ideas, errores ajenos al ciclo, etc.).
 
 Ventanas válidas para "window": ${KNOWN_WINDOWS.join(', ')}. "chatgpt" = gpt. Si no se nombra ventana y la acción la necesita, dejá window vacío.
@@ -91,14 +93,17 @@ function interpretFallback(message, ctx) {
   let win = KNOWN_WINDOWS.find((w) => m.includes(w)) || '';
   if (!win && m.includes('chatgpt')) win = 'gpt';
 
-  if (ctx.hasPendingWrite && /^(s[ií]|dale|mand[áa]|envi[áa]|ok|hacelo|confirmo|de una|listo)\b/.test(m)) {
+  if ((ctx.hasPendingWrite || ctx.hasPendingCycle) && /^(s[ií]|dale|mand[áa]|envi[áa]|ok|hacelo|confirmo|de una|listo|arranc[áa])\b/.test(m)) {
     return { kind: 'confirm', window: '', text: '' };
   }
-  if (ctx.hasPendingWrite && /^(no|cancel[áa]|par[áa]|dej[áa]|olvidate)\b/.test(m)) {
+  if ((ctx.hasPendingWrite || ctx.hasPendingCycle) && /^(no|cancel[áa]|par[áa]|dej[áa]|olvidate)\b/.test(m)) {
     return { kind: 'cancel', window: '', text: '' };
   }
   if (ctx.hasLastRead && /(texto completo|el completo|el literal|literal|tal cual|todo el texto|el detalle|dame el texto)/.test(m)) {
     return { kind: 'detail', window: '', text: '' };
+  }
+  if (/(arranc[áa]|inici[áa]|empez[áa]|larg[áa]|dale).*(ciclo|loop)|(ciclo|loop).*(arranc|inici|empez)/.test(m)) {
+    return { kind: 'cycle', window: '', text: '' };
   }
   if (/(ciclo|agente).*(parad|fren|no anda|no arranca|colgad|trabad|pasa|onda|estado|anda|funciona|conectad)/.test(m) ||
       /(por qu[ée]|qu[ée] pasa|qu[ée] onda|c[óo]mo (viene|va|anda|est[áa]))/.test(m) && /(ciclo|agente|torre|todo)/.test(m)) {
@@ -124,11 +129,11 @@ function interpretFallback(message, ctx) {
 }
 
 async function interpret(message) {
-  const ctx = { hasPendingWrite: !!pendingWrite, hasLastRead: !!lastRead };
+  const ctx = { hasPendingWrite: !!pendingWrite, hasPendingCycle: !!pendingCycle, hasLastRead: !!lastRead };
   const ia = await interpretIA(message, ctx);
   const cmd = ia || interpretFallback(message, ctx);
   // Validación cruzada: confirm/detail solo si hay estado que lo respalde.
-  if (cmd.kind === 'confirm' && !pendingWrite) return interpretFallback(message, ctx);
+  if (cmd.kind === 'confirm' && !pendingWrite && !pendingCycle) return interpretFallback(message, ctx);
   if (cmd.kind === 'detail' && !lastRead) return { kind: 'none', window: '', text: '' };
   return cmd;
 }
@@ -243,18 +248,37 @@ async function handleScreenMessage(message) {
       }
 
       case 'confirm': {
-        if (!pendingWrite) return { handled: true, response: 'No tengo nada pendiente para mandar.' };
-        const { window: w, text: t } = pendingWrite;
-        pendingWrite = null;
-        await orchestrator.writeAgentWindow(w, t, true);
-        return { handled: true, response: `Listo, lo mandé a ${w}.` };
+        if (pendingCycle) {
+          const c = pendingCycle;
+          pendingCycle = null;
+          await orchestrator.startNewCycle(c);
+          return { handled: true, response: `Listo, arranqué el ciclo ${c.source} → ${c.target}. Te aviso por WhatsApp cuando termine.` };
+        }
+        if (pendingWrite) {
+          const { window: w, text: t } = pendingWrite;
+          pendingWrite = null;
+          await orchestrator.writeAgentWindow(w, t, true);
+          return { handled: true, response: `Listo, lo mandé a ${w}.` };
+        }
+        return { handled: true, response: 'No tengo nada pendiente para confirmar.' };
       }
 
       case 'cancel': {
-        if (!pendingWrite) return { handled: true, response: 'No había nada pendiente, pero quedamos.' };
-        const w = pendingWrite.window;
-        pendingWrite = null;
-        return { handled: true, response: `Cancelado. No escribí nada en ${w}.` };
+        if (pendingCycle) { pendingCycle = null; return { handled: true, response: 'Listo, no arranco el ciclo.' }; }
+        if (pendingWrite) { const w = pendingWrite.window; pendingWrite = null; return { handled: true, response: `Cancelado. No escribí nada en ${w}.` }; }
+        return { handled: true, response: 'No había nada pendiente, pero quedamos.' };
+      }
+
+      case 'cycle': {
+        // Dirección por defecto: GPT → Claude (el caso principal). Si Ariel
+        // pide explícitamente "claude a gpt", invertir.
+        let source = 'gpt', target = 'claude';
+        if (/claude\s*(a|hacia|->|→|hasta)\s*gpt/i.test(message)) { source = 'claude'; target = 'gpt'; }
+        pendingCycle = { source, target, notify: 'whatsapp' };
+        return {
+          handled: true,
+          response: `Arranco el ciclo ${source} → ${target} y te aviso por WhatsApp al terminar. ¿Dale? (decime "sí")`,
+        };
       }
 
       case 'detail': {
