@@ -137,7 +137,7 @@ async function sendCommand(action, params = {}) {
     const timeout = setTimeout(() => {
       pendingCommands.delete(id);
       reject(new Error(`Timeout esperando respuesta del agente para: ${action}`));
-    }, params.timeoutMs || 30000);
+    }, params.timeoutMs || 3600000); // 1 hora
 
     const originalResolve = resolve;
     pendingCommands.set(id, {
