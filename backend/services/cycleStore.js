@@ -3,12 +3,10 @@
  * Persistencia de ciclos de coordinación en SQLite.
  */
 
-const { getDb } = require('./db');
-
-function db() { return getDb(); }
+const db = require('./db');
 
 function initCycleTable() {
-  db().exec(`
+  db.exec(`
     CREATE TABLE IF NOT EXISTS cycles (
       id          TEXT PRIMARY KEY,
       source      TEXT NOT NULL,
@@ -25,7 +23,7 @@ function initCycleTable() {
 }
 
 function createCycle({ id, source, target, notify, prompt }) {
-  db().prepare(`
+  db.prepare(`
     INSERT INTO cycles (id, source, target, notify, prompt, status, created_at)
     VALUES (@id, @source, @target, @notify, @prompt, 'pending', @created_at)
   `).run({ id, source, target, notify: notify || null, prompt: prompt || null, created_at: Date.now() });
@@ -33,11 +31,11 @@ function createCycle({ id, source, target, notify, prompt }) {
 }
 
 function startCycle(id) {
-  db().prepare(`UPDATE cycles SET status = 'running' WHERE id = ?`).run(id);
+  db.prepare(`UPDATE cycles SET status = 'running' WHERE id = ?`).run(id);
 }
 
 function completeCycle(id, result) {
-  db().prepare(`
+  db.prepare(`
     UPDATE cycles
     SET status = 'completed', result = @result, completed_at = @completed_at
     WHERE id = @id
@@ -45,7 +43,7 @@ function completeCycle(id, result) {
 }
 
 function failCycle(id, error) {
-  db().prepare(`
+  db.prepare(`
     UPDATE cycles
     SET status = 'failed', error = @error, completed_at = @completed_at
     WHERE id = @id
@@ -53,17 +51,17 @@ function failCycle(id, error) {
 }
 
 function getCycle(id) {
-  return db().prepare(`SELECT * FROM cycles WHERE id = ?`).get(id) || null;
+  return db.prepare(`SELECT * FROM cycles WHERE id = ?`).get(id) || null;
 }
 
 function getRecentCycles(limit = 20) {
-  return db().prepare(`
+  return db.prepare(`
     SELECT * FROM cycles ORDER BY created_at DESC LIMIT ?
   `).all(limit);
 }
 
 function getActiveCycles() {
-  return db().prepare(`
+  return db.prepare(`
     SELECT * FROM cycles WHERE status IN ('pending', 'running') ORDER BY created_at ASC
   `).all();
 }
