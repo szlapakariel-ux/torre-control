@@ -298,6 +298,34 @@ test('19c. poller-error timestamp no-número → rechazo', async () => {
   assert.strictEqual(res.body.error, 'invalid_timestamp');
 });
 
+// ── 19d-f. Validación extendida de timestamp ─────────────────────────────────
+test('19d. poller-error timestamp=-1 → rechazo con invalid_timestamp', async () => {
+  const res = await request
+    .post(ENDPOINT_ERR)
+    .set('Authorization', AUTH)
+    .send({ consecutiveErrors: 1, error: 'timeout', timestamp: -1 });
+  assert.strictEqual(res.body.ok, false);
+  assert.strictEqual(res.body.error, 'invalid_timestamp');
+});
+
+test('19e. poller-error timestamp=1.5 (decimal) → rechazo con invalid_timestamp', async () => {
+  const res = await request
+    .post(ENDPOINT_ERR)
+    .set('Authorization', AUTH)
+    .send({ consecutiveErrors: 1, error: 'timeout', timestamp: 1.5 });
+  assert.strictEqual(res.body.ok, false);
+  assert.strictEqual(res.body.error, 'invalid_timestamp');
+});
+
+test('19f. poller-error timestamp=0 (válido) → ok=true', async () => {
+  const res = await request
+    .post(ENDPOINT_ERR)
+    .set('Authorization', AUTH)
+    .send({ consecutiveErrors: 1, error: 'timeout', timestamp: 0 });
+  assert.strictEqual(res.status, 200);
+  assert.strictEqual(res.body.ok, true);
+});
+
 // ── 20. Logs no contienen preview ni displayName completos ───────────────────
 test('20. Log no incluye preview ni displayName completos', async () => {
   const capturedLines = [];

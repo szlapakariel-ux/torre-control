@@ -160,7 +160,11 @@ router.post('/poller-error', (req, res) => {
     ) {
       return res.status(400).json({ ok: false, error: 'invalid_error_message' });
     }
-    if (typeof timestamp !== 'number') {
+    if (
+      typeof timestamp !== 'number' ||
+      !Number.isSafeInteger(timestamp) ||
+      timestamp < 0
+    ) {
       return res.status(400).json({ ok: false, error: 'invalid_timestamp' });
     }
 
