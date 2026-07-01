@@ -8,7 +8,11 @@
     },
     "scripts": {
         "start": "node server.js",
-        "dev": "node --watch server.js"
+        "dev": "node --watch server.js",
+        "test": "node --test tests/whatsapp.test.js"
+    },
+    "devDependencies": {
+        "supertest": "^7.2.2"
     },
     "dependencies": {
         "@anthropic-ai/sdk": "^0.69.0",

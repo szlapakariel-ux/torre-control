@@ -17,6 +17,7 @@ const {
   getCycleHistory, receiveCycleResult,
 } = require('./services/orchestrator');
 const { initCycleTable } = require('./services/cycleStore');
+const whatsappRouter = require('./routes/whatsapp');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -346,6 +347,10 @@ app.post('/api/agent/screenshot', writeLimiter, requireAuth, async (req, res, ne
   } catch (err) { next(err); }
 });
 
+// ── WhatsApp receiver ─────────────────────────────────────────────────────────
+// Autenticado con el mismo mecanismo de escritura (requireAuth + writeLimiter).
+app.use('/api/whatsapp', writeLimiter, requireAuth, whatsappRouter);
+
 // ── Voz JARVIS (ElevenLabs) ──────────────────────────────────────────────────
 
 const { synthesize: elevenSynthesize, isConfigured: elevenConfigured } = require('./services/elevenLabsVoice');
@@ -405,7 +410,7 @@ app.use((err, _req, res, _next) => {
 initCycleTable();
 
 const server = app.listen(PORT, () => {
-  console.log(`Torre de Control backend → puerto ${PORT}`);
+  console.log(`Torre de Control backend → puerto ${server.address()?.port ?? PORT}`);
 });
 
 // Apagado ordenado para no perder escrituras en redeploys.
@@ -416,4 +421,4 @@ function shutdown(signal) {
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
 
-module.exports = app;
+module.exports = { app, server };
